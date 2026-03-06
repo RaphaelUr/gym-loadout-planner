@@ -480,272 +480,121 @@ function compareTransferScores(a, b) {
   return 0;
 }
 
-function getMinimalTransferDeficitPairs(candidate, usage, inventory) {
-  const deficitPairs = {};
-  for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
-    const need = (usage[plateId] || 0) + Number(qty || 0) - Number(inventory[plateId] || 0);
-    if (need > 0) {
-      deficitPairs[plateId] = Math.ceil(need / 2);
-    }
-  }
-  return deficitPairs;
-}
-
-function areTransferDeficitsSatisfied(deficitPairs) {
-  return Object.values(deficitPairs || {}).every((qty) => Number(qty || 0) <= 0);
-}
-
-function getUsefulPrefixLengthsForDonorQueue(queue, deficitPairs) {
-  const options = new Set();
-  const remainingNeededById = {};
-  for (const [plateId, qty] of Object.entries(deficitPairs || {})) {
-    if (Number(qty || 0) > 0) {
-      remainingNeededById[plateId] = Number(qty || 0);
-    }
-  }
-  if (Object.keys(remainingNeededById).length === 0) {
-    return [];
-  }
-
-  for (let len = 1; len <= (queue?.length || 0); len += 1) {
-    const item = queue[len - 1];
-    if (remainingNeededById[item?.plateId] > 0) {
-      options.add(len);
-    }
-  }
-
-  return Array.from(options).sort((a, b) => a - b);
-}
-
 function attemptMinimalTransferRescueForCandidate({
   candidate,
   usage,
   inventory,
   donorStates
 }) {
-  const deficitPairs = getMinimalTransferDeficitPairs(candidate, usage, inventory);
+  const deficits = {};
+  for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
+    const need = (usage[plateId] || 0) + Number(qty || 0) - Number(inventory[plateId] || 0);
+    if (need > 0) {
+      deficits[plateId] = need;
+    }
+  }
+  const deficitPairs = {};
+  for (const [plateId, qty] of Object.entries(deficits)) {
+    if (Math.abs(qty % 2) > 1e-9) {
+      return null;
+    }
+    deficitPairs[plateId] = qty / 2;
+  }
   if (Object.keys(deficitPairs).length === 0) {
-    return {
-      steps: [],
-      donorStates: cloneDonorStates(donorStates),
-      score: {
-        donorsTouched: 0,
-        totalDonorDumbbellsUnlocked: 0,
-        totalPairsMoved: 0,
-        totalMovedMassKg: 0
-      }
-    };
+    return { steps: [], donorStates: cloneDonorStates(donorStates), score: { donorsTouched: 0, totalDonorDumbbellsUnlocked: 0, totalPairsMoved: 0, totalMovedMassKg: 0 } };
   }
 
   const workingDonors = cloneDonorStates(donorStates);
-  const donorQueues = [];
-  for (const donor of Object.values(workingDonors || {})) {
-    for (let queueIndex = 0; queueIndex < (donor.queuesByDumbbell || []).length; queueIndex += 1) {
-      const queue = donor.queuesByDumbbell[queueIndex] || [];
-      if (queue.length <= 0) {
-        continue;
+  const rawSteps = [];
+  const touchedDonors = new Set();
+
+  const neededIds = Object.keys(deficitPairs).sort((a, b) => Number(deficitPairs[b] || 0) - Number(deficitPairs[a] || 0));
+  for (const plateId of neededIds) {
+    while ((deficitPairs[plateId] || 0) > 0) {
+      const options = [];
+      for (const donor of Object.values(workingDonors)) {
+        let frontMatches = 0;
+        for (const queue of donor.queuesByDumbbell || []) {
+          if (queue.length > 0 && queue[0].plateId === plateId) {
+            frontMatches += 1;
+          }
+        }
+        if (frontMatches > 0) {
+          options.push({ donor, frontMatches, touched: touchedDonors.has(donor.donorExerciseId) ? 1 : 0 });
+        }
       }
-      donorQueues.push({
+      if (options.length === 0) {
+        return null;
+      }
+      options.sort((x, y) => {
+        if (y.touched !== x.touched) return y.touched - x.touched;
+        if (y.frontMatches !== x.frontMatches) return y.frontMatches - x.frontMatches;
+        return x.donor.donorExerciseId.localeCompare(y.donor.donorExerciseId);
+      });
+      const chosenOption = options[0];
+      const donor = chosenOption.donor;
+      const queueIndex = donor.queuesByDumbbell.findIndex((queue) => queue.length > 0 && queue[0].plateId === plateId);
+      if (queueIndex < 0) {
+        return null;
+      }
+      const removed = donor.queuesByDumbbell[queueIndex].shift();
+      touchedDonors.add(donor.donorExerciseId);
+      rawSteps.push({
         donorExerciseId: donor.donorExerciseId,
         donorExerciseName: donor.donorExerciseName,
-        queueIndex,
-        queue
+        plateId,
+        plateWeightKg: Number(removed?.plateWeightKg || 0),
+        pairCount: 1,
+        donorDumbbellsTouched: donor.donorDumbbellsTouched
       });
+      deficitPairs[plateId] -= 1;
     }
   }
 
-  let best = null;
-
-  function maybeStoreBest(rawSteps, donorsTouchedSet, dumbbellsTouchedSet, totalPairsMoved, totalMovedMassKg) {
-    const score = {
-      donorsTouched: donorsTouchedSet.size,
-      totalDonorDumbbellsUnlocked: dumbbellsTouchedSet.size,
-      totalPairsMoved,
-      totalMovedMassKg
-    };
-    if (!best || compareTransferScores(score, best.score) < 0) {
-      best = {
-        rawSteps: rawSteps.map((step) => ({ ...step })),
-        score
-      };
-    }
-  }
-
-  function dfs(queueIdx, remainingDeficitPairs, rawSteps, donorsTouchedSet, dumbbellsTouchedSet, totalPairsMoved, totalMovedMassKg) {
-    if (areTransferDeficitsSatisfied(remainingDeficitPairs)) {
-      maybeStoreBest(rawSteps, donorsTouchedSet, dumbbellsTouchedSet, totalPairsMoved, totalMovedMassKg);
-      return;
-    }
-    if (queueIdx >= donorQueues.length) {
-      return;
-    }
-
-    dfs(
-      queueIdx + 1,
-      remainingDeficitPairs,
-      rawSteps,
-      donorsTouchedSet,
-      dumbbellsTouchedSet,
-      totalPairsMoved,
-      totalMovedMassKg
-    );
-
-    const donorQueue = donorQueues[queueIdx];
-    const usefulPrefixLengths = getUsefulPrefixLengthsForDonorQueue(donorQueue.queue, remainingDeficitPairs);
-    for (const prefixLen of usefulPrefixLengths) {
-      const nextRemaining = { ...remainingDeficitPairs };
-      const nextRawSteps = rawSteps.slice();
-      const nextDonorsTouched = new Set(donorsTouchedSet);
-      const nextDumbbellsTouched = new Set(dumbbellsTouchedSet);
-      let nextTotalPairsMoved = totalPairsMoved;
-      let nextTotalMovedMassKg = totalMovedMassKg;
-
-      nextDonorsTouched.add(donorQueue.donorExerciseId);
-      nextDumbbellsTouched.add(`${donorQueue.donorExerciseId}|${donorQueue.queueIndex}`);
-
-      for (let i = 0; i < prefixLen; i += 1) {
-        const removed = donorQueue.queue[i];
-        if (nextRemaining[removed.plateId] > 0) {
-          nextRemaining[removed.plateId] -= 1;
-        }
-        nextRawSteps.push({
-          donorExerciseId: donorQueue.donorExerciseId,
-          donorExerciseName: donorQueue.donorExerciseName,
-          plateId: removed.plateId,
-          plateWeightKg: Number(removed.plateWeightKg || 0),
-          pairCount: 1,
-          queueIndex: donorQueue.queueIndex
-        });
-        nextTotalPairsMoved += 1;
-        nextTotalMovedMassKg += Number(removed.plateWeightKg || 0);
-      }
-
-      dfs(
-        queueIdx + 1,
-        nextRemaining,
-        nextRawSteps,
-        nextDonorsTouched,
-        nextDumbbellsTouched,
-        nextTotalPairsMoved,
-        nextTotalMovedMassKg
-      );
-    }
-  }
-
-  dfs(0, deficitPairs, [], new Set(), new Set(), 0, 0);
-
-  if (!best) {
-    return null;
-  }
-
-  const removedCountByQueueKey = {};
-  for (const step of best.rawSteps) {
-    const key = `${step.donorExerciseId}|${step.queueIndex}`;
-    removedCountByQueueKey[key] = Number(removedCountByQueueKey[key] || 0) + 1;
-  }
-  for (const donor of Object.values(workingDonors || {})) {
-    for (let queueIndex = 0; queueIndex < (donor.queuesByDumbbell || []).length; queueIndex += 1) {
-      const key = `${donor.donorExerciseId}|${queueIndex}`;
-      const removeCount = Number(removedCountByQueueKey[key] || 0);
-      if (removeCount > 0) {
-        donor.queuesByDumbbell[queueIndex].splice(0, removeCount);
-      }
-    }
-  }
-
-  const steps = mergeTransferSteps(best.rawSteps.map((step) => ({
-    donorExerciseId: step.donorExerciseId,
-    donorExerciseName: step.donorExerciseName,
-    plateId: step.plateId,
-    plateWeightKg: step.plateWeightKg,
-    pairCount: step.pairCount,
-    donorDumbbellsTouched: 1
-  })));
-
-  return {
-    steps,
-    donorStates: workingDonors,
-    score: best.score
+  const steps = mergeTransferSteps(rawSteps);
+  const donorsTouched = new Set(steps.map((step) => step.donorExerciseId));
+  const score = {
+    donorsTouched: donorsTouched.size,
+    totalDonorDumbbellsUnlocked: Array.from(donorsTouched).reduce((sum, donorId) => {
+      const donor = workingDonors[donorId];
+      return sum + Number(donor?.donorDumbbellsTouched || 0);
+    }, 0),
+    totalPairsMoved: steps.reduce((sum, step) => sum + Number(step.pairCount || 0), 0),
+    totalMovedMassKg: steps.reduce((sum, step) => sum + (Number(step.pairCount || 0) * Number(step.plateWeightKg || 0)), 0)
   };
-}
-
-function hasLaterPersistentWeightExercise(weightExercises, startIndex) {
-  for (let i = startIndex + 1; i < weightExercises.length; i += 1) {
-    const kind = weightExercises[i]?.kind;
-    if (kind === "db" || kind === "plateOnly") {
-      return true;
-    }
-  }
-  return false;
+  return { steps, donorStates: workingDonors, score };
 }
 
 function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExercise, initialChosenByExercise) {
-  const chosenByExercise = new Map();
+  const chosenByExercise = new Map(initialChosenByExercise || []);
   const transferPlanByExerciseId = {};
   const inventory = buildDayPlateInventory();
-  const implementQtyById = buildDayImplementQtyById();
-  const persistentExercises = weightExercises.filter((exercise) => exercise.kind === "db" || exercise.kind === "plateOnly");
-  const persistentTasks = persistentExercises.map((exercise) => ({
-    exercise,
-    candidates: candidatesByExercise.get(exercise.id) || [],
-    pinnedSignature: state.weightChosenSetup[exercise.id] || null
-  }));
-  const persistentSolve = persistentTasks.length > 0
-    ? runDayWeightSolvePass(persistentTasks, inventory, implementQtyById, false)
-    : { best: { chosen: new Map() } };
-  const strictPersistentChosen = persistentSolve?.best?.chosen || new Map();
-
-  const persistentEntries = [];
-  const usage = {};
+  const usage = buildUsageFromChosenInDayOrder(weightExercises, chosenByExercise);
   let donorStates = {};
 
-  for (let index = 0; index < weightExercises.length; index += 1) {
-    const exercise = weightExercises[index];
-    const candidates = candidatesByExercise.get(exercise.id) || [];
-    const ordered = getOrderedWeightCandidatesForExercise(exercise, candidates);
-
-    if (exercise.kind === "db" || exercise.kind === "plateOnly") {
-      let chosen = strictPersistentChosen.get(exercise.id) || null;
-      if (!chosen) {
-        chosen = ordered.find((candidate) => isWeightPlanFeasible([
-          ...persistentEntries,
-          { exerciseId: exercise.id, candidate }
-        ], state.gear)) || null;
-      }
-      if (!chosen) {
-        continue;
-      }
-      chosenByExercise.set(exercise.id, chosen);
-      persistentEntries.push({ exerciseId: exercise.id, candidate: chosen });
-      applyWeightCandidateUsage(chosen, usage, +1, null, null);
-      if (chosen.kind === "db") {
-        const donor = buildDonorStateFromDbCandidate(exercise, chosen);
+  for (const exercise of weightExercises) {
+    const existingChosen = chosenByExercise.get(exercise.id);
+    if (existingChosen) {
+      if (existingChosen.kind === "db") {
+        const donor = buildDonorStateFromDbCandidate(exercise, existingChosen);
         if (donor) {
           donorStates[exercise.id] = donor;
         }
       }
       continue;
     }
-
     if (exercise.kind !== "barbell" && exercise.kind !== "curlbar") {
       continue;
     }
-
-    const strictChosen = ordered.find((candidate) => isWeightPlanFeasible([
-      ...persistentEntries,
-      { exerciseId: exercise.id, candidate }
-    ], state.gear)) || null;
-    if (strictChosen) {
-      chosenByExercise.set(exercise.id, strictChosen);
-      continue;
-    }
-
-    if (hasLaterPersistentWeightExercise(weightExercises, index)) {
-      continue;
-    }
-
+    const candidates = candidatesByExercise.get(exercise.id) || [];
+    const ordered = getOrderedWeightCandidatesForExercise(exercise, candidates);
     let rescued = null;
+
     for (const candidate of ordered) {
+      if (canApplyWeightCandidate(candidate, usage, inventory, null, null, null)) {
+        rescued = { candidate, steps: [], donorStates };
+        break;
+      }
       const attempt = attemptMinimalTransferRescueForCandidate({
         candidate,
         usage,
@@ -769,20 +618,21 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
       continue;
     }
 
-    chosenByExercise.set(exercise.id, rescued.candidate);
+    applyWeightCandidateUsage(rescued.candidate, usage, +1, null, null);
+    for (const step of rescued.steps || []) {
+      const movedQty = Number(step.pairCount || 0) * 2;
+      const nextQty = Number(usage[step.plateId] || 0) - movedQty;
+      if (nextQty <= 0) {
+        delete usage[step.plateId];
+      } else {
+        usage[step.plateId] = nextQty;
+      }
+    }
     if ((rescued.steps || []).length > 0) {
       transferPlanByExerciseId[exercise.id] = rescued.steps;
-      for (const step of rescued.steps) {
-        const movedQty = Number(step.pairCount || 0) * 2;
-        const nextQty = Number(usage[step.plateId] || 0) - movedQty;
-        if (nextQty <= 0) {
-          delete usage[step.plateId];
-        } else {
-          usage[step.plateId] = nextQty;
-        }
-      }
-      donorStates = rescued.donorStates || donorStates;
     }
+    donorStates = rescued.donorStates || donorStates;
+    chosenByExercise.set(exercise.id, rescued.candidate);
   }
 
   return { chosenByExercise, transferPlanByExerciseId };

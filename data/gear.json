@@ -95,7 +95,7 @@
       "name": "Iron 2",
       "weightKg": 2,
       "boreCm": 3,
-      "thicknessCm": 3,
+      "thicknessCm": 2,
       "diameterCm": 15.3,
       "qty": 4
     },
@@ -133,7 +133,7 @@
       "boreCm": 3,
       "thicknessCm": 2.6,
       "diameterCm": 29.8,
-      "qty": 4
+      "qty": 2
     },
     {
       "id": "plate_iron_10_v1",
@@ -142,7 +142,7 @@
       "boreCm": 3,
       "thicknessCm": 3.2,
       "diameterCm": 30,
-      "qty": 4
+      "qty": 2
     },
     {
       "id": "plate_iron_10_v3",
