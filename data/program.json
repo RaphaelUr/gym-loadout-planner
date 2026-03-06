@@ -1,0 +1,1171 @@
+{
+  "phases": [
+    {
+      "phase": 1,
+      "days": [
+        {
+          "day": 1,
+          "exercises": [
+            {
+              "id": "p1d1_barbell_floor_press",
+              "name": "Barbell Floor Press",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 76
+            },
+            {
+              "id": "p1d1_banded_elevated_pushup",
+              "name": "Banded elevated push-up",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_purple_85", "qty": 1 },
+                  { "bandId": "loop_red_35", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p1d1_standing_banded_chest_fly",
+              "name": "Standing banded chest-fly",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 },
+                  { "bandId": "handled_grey_dark_60", "qty": 1 },
+                  { "bandId": "handled_grey_clear_40", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p1d1_banded_diamond_pushup",
+              "name": "Banded diamond push-up",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_black_60", "qty": 1 },
+                  { "bandId": "loop_yellow_15", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "exercises": [
+            {
+              "id": "p1d2_standing_banded_pullover",
+              "name": "Standing banded pull-over",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_green_125", "qty": 1 },
+                  { "bandId": "loop_yellow_15", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p1d2_db_deadlift",
+              "name": "Dumbbell Deadlift",
+              "kind": "db",
+              "targetPlatesOnlyKg": 35,
+              "dbCount": 2,
+              "baseImplementId": "db_long_red",
+              "notes": "Prefer Long Red dumbbells."
+            },
+            {
+              "id": "p1d2_db_single_arm_row",
+              "name": "Dumbbell single-arm row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 32,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 23,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d2_barbell_shrugs",
+              "name": "Barbell shrugs",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 94
+            }
+          ]
+        },
+        {
+          "day": 4,
+          "exercises": [
+            {
+              "id": "p1d4_db_back_squat",
+              "name": "Dumbbell back squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 18,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d4_alternating_db_forward_lunge",
+              "name": "Alternating dumbbell forward lunge",
+              "kind": "db",
+              "targetPlatesOnlyKg": 14,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p1d4_barbell_hip_thrust",
+              "name": "Barbell hip thrust",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 70
+            },
+            {
+              "id": "p1d4_alternating_db_side_lunge",
+              "name": "Alternating dumbbell side lunge",
+              "kind": "db",
+              "targetPlatesOnlyKg": 12,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 19,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d4_alternating_db_step_up",
+              "name": "Alternating dumbbell step-up",
+              "kind": "db",
+              "targetPlatesOnlyKg": 14,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d4_barbell_calf_raise",
+              "name": "Barbell calf raise",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 94
+            }
+          ]
+        },
+        {
+          "day": 5,
+          "exercises": [
+            {
+              "id": "p1d5_db_seated_shoulder_press",
+              "name": "Dumbbell seated shoulder press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 27,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "preferMaxPlateDiameterCm": 25,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d5_plate_front_raise",
+              "name": "Plate front raise",
+              "kind": "plateOnly",
+              "targetPlatesOnlyKg": 10,
+              "plateOnlyCount": 1
+            },
+            {
+              "id": "p1d5_alternating_arnold_press",
+              "name": "Alternating Arnold press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 22,
+              "dbCount": 2,
+              "baseImplementId": "db_long_red",
+              "maxPlateDiameterCm": 22,
+              "notes": "Long Red allowed but prefer avoid"
+            },
+            {
+              "id": "p1d5_db_lateral_raise",
+              "name": "Dumbbell lateral raise",
+              "kind": "db",
+              "targetPlatesOnlyKg": 14.5,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p1d5_db_upright_row",
+              "name": "Dumbbell upright row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 19,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d5_banded_rear_flys",
+              "name": "Banded rear flys",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "bandId": "handled_turquoise_30", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p1d5_db_shrugs",
+              "name": "Dumbbell shrugs",
+              "kind": "db",
+              "targetPlatesOnlyKg": 27,
+              "dbCount": 2,
+              "baseImplementId": "db_green"
+            },
+            {
+              "id": "p1d5_weighted_plate_crunch",
+              "name": "Weighted plate crunch",
+              "kind": "plateOnly",
+              "targetPlatesOnlyKg": 10,
+              "plateOnlyCount": 2
+            }
+          ]
+        },
+        {
+          "day": 6,
+          "exercises": [
+            {
+              "id": "p1d6_standing_db_curls",
+              "name": "Standing dumbbell curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 15,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d6_db_hammer_curls",
+              "name": "Dumbbell hammer curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 11,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p1d6_zottman_curls",
+              "name": "Zottman curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 10,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 21,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d6_db_skull_crushers",
+              "name": "Dumbbell skull crushers",
+              "kind": "db",
+              "targetPlatesOnlyKg": 10.5,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "preferMaxPlateDiameterCm": 20,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p1d6_banded_rope_pushdown",
+              "name": "Banded rope pushdown",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 },
+                  { "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "bandId": "handled_turquoise_30", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "days": [
+        {
+          "day": 1,
+          "exercises": [
+            {
+              "id": "p2d1_db_single_arm_alternating_bench_press",
+              "name": "DB single-arm alternating bench press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 32,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 27,
+              "preferMaxPlateDiameterCm": 23,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p2d1_standing_banded_chest_fly",
+              "name": "Standing banded chest-fly",
+              "kind": "bands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "mixed",
+                "items": [
+                  { "system": "handled", "bandId": "handled_black_70", "qty": 1 },
+                  { "system": "handled", "bandId": "handled_grey_dark_60", "qty": 1 },
+                  { "system": "handled", "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "system": "loop", "bandId": "loop_yellow_15", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d1_banded_diamond_pushup",
+              "name": "Banded diamond push-up",
+              "kind": "bands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "mixed",
+                "items": [
+                  { "system": "loop", "bandId": "loop_purple_85", "qty": 1 },
+                  { "system": "handled", "bandId": "handled_grey_clear_40", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d1_banded_rope_pushdown",
+              "name": "Banded rope pushdown",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_black_60", "qty": 1 },
+                  { "bandId": "loop_red_35", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "exercises": [
+            {
+              "id": "p2d2_barbell_full_deadlift",
+              "name": "Barbell full deadlift",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 75
+            },
+            {
+              "id": "p2d2_banded_rear_flys",
+              "name": "Banded rear flys",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d2_barbell_bent_over_row",
+              "name": "Barbell bent-over row",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 29
+            },
+            {
+              "id": "p2d2_barbell_shrugs_band_only",
+              "name": "Barbell shrugs (band-only)",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_green_125", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d2_single_arm_pronated_grip_row",
+              "name": "Single-arm pronated grip row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 30,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            }
+          ]
+        },
+        {
+          "day": 4,
+          "exercises": [
+            {
+              "id": "p2d4_db_front_squat",
+              "name": "Dumbbell front squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 17,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p2d4_bulgarian_split_squat",
+              "name": "Bulgarian split squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 17,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p2d4_barbell_single_leg_hip_thrust",
+              "name": "Barbell single-leg hip thrust",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 60
+            },
+            {
+              "id": "p2d4_db_alternating_skater_lunges",
+              "name": "Dumbbell alternating skater lunges",
+              "kind": "db",
+              "targetPlatesOnlyKg": 14,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p2d4_db_calf_raise_i_use_barbell",
+              "name": "Dumbbell calf raise (I use barbell)",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 98
+            }
+          ]
+        },
+        {
+          "day": 5,
+          "exercises": [
+            {
+              "id": "p2d5_alternating_arnold_press",
+              "name": "Alternating Arnold press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 23,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 27,
+              "preferMaxPlateDiameterCm": 22
+            },
+            {
+              "id": "p2d5_plate_front_raise",
+              "name": "Plate front raise",
+              "kind": "plateOnly",
+              "targetPlatesOnlyKg": 10,
+              "plateOnlyCount": 1
+            },
+            {
+              "id": "p2d5_banded_lateral_raise",
+              "name": "Banded lateral raise",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_black_60", "qty": 1 },
+                  { "bandId": "loop_yellow_15", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d5_banded_front_raise",
+              "name": "Banded front raise",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "bandId": "handled_grey_dark_60", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d5_banded_rear_flys",
+              "name": "Banded rear flys",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p2d5_db_shrugs_i_use_barbell",
+              "name": "Dumbbell shrugs (I use barbell)",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 90
+            }
+          ]
+        },
+        {
+          "day": 6,
+          "exercises": [
+            {
+              "id": "p2d6_db_tension_curls",
+              "name": "Dumbbell tension curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 12,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p2d6_db_tension_hammer_curls",
+              "name": "Dumbbell tension hammer curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 10,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p2d6_db_kickbacks",
+              "name": "Dumbbell kickbacks",
+              "kind": "db",
+              "targetPlatesOnlyKg": 16,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p2d6_db_concentrated_curls",
+              "name": "Dumbbell concentrated curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 16,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p2d6_banded_single_arm_pushdown",
+              "name": "Banded single-arm pushdown",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_green_125", "qty": 1 },
+                  { "bandId": "loop_red_35", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "days": [
+        {
+          "day": 1,
+          "exercises": [
+            {
+              "id": "p3d1_barbell_floor_press",
+              "name": "Barbell floor press",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 60
+            },
+            {
+              "id": "p3d1_band_resisted_push_up",
+              "name": "Band resisted push-up",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_black_60", "qty": 1 },
+                  { "bandId": "loop_red_35", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p3d1_db_single_arm_alternating_bench_press",
+              "name": "DB single-arm alternating bench press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 29,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 27,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d1_standing_banded_chest_fly",
+              "name": "Standing banded chest-fly",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 },
+                  { "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "bandId": "handled_grey_clear_40", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p3d1_db_skull_crushers",
+              "name": "Dumbbell skull crushers",
+              "kind": "db",
+              "targetPlatesOnlyKg": 11.5,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "preferMaxPlateDiameterCm": 19
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "exercises": [
+            {
+              "id": "p3d2_barbell_bent_over_row",
+              "name": "Barbell bent-over row",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 46
+            },
+            {
+              "id": "p3d2_standing_banded_pull_over",
+              "name": "Standing banded pull-over",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_green_125", "qty": 1 },
+                  { "bandId": "loop_red_35", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p3d2_banded_wide_face_pull",
+              "name": "Banded wide face pull",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "bandId": "handled_grey_clear_40", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p3d2_db_single_arm_row",
+              "name": "Dumbbell single-arm row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 26,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d2_barbell_shrugs",
+              "name": "Barbell shrugs",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 84
+            }
+          ]
+        },
+        {
+          "day": 4,
+          "exercises": [
+            {
+              "id": "p3d4_db_back_squat",
+              "name": "Dumbbell back squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 10,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d4_barbell_bench_hip_thrust",
+              "name": "Barbell bench hip thrust",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 62
+            },
+            {
+              "id": "p3d4_bulgarian_split_squat",
+              "name": "Bulgarian split squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 19,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p3d4_alternating_db_side_lunge",
+              "name": "Alternating dumbbell side lunge",
+              "kind": "db",
+              "targetPlatesOnlyKg": 11,
+              "dbCount": 1,
+              "baseImplementId": "db_metal_heavy",
+              "maxPlateDiameterCm": 19,
+              "notes": "Prefer Metal Heavy"
+            },
+            {
+              "id": "p3d4_db_front_squat",
+              "name": "Dumbbell front squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 13,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d4_db_calf_raise_i_use_barbell",
+              "name": "Dumbbell calf raise (I use barbell)",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 84
+            }
+          ]
+        },
+        {
+          "day": 5,
+          "exercises": [
+            {
+              "id": "p3d5_db_seated_shoulder_press",
+              "name": "Dumbbell seated shoulder press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 23,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "preferMaxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d5_db_front_raise_rotation",
+              "name": "Dumbbell front raise + rotation",
+              "kind": "db",
+              "targetPlatesOnlyKg": 6,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d5_db_seated_arnold_press",
+              "name": "Dumbbell seated Arnold press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 18,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d5_db_lateral_raise",
+              "name": "Dumbbell lateral raise",
+              "kind": "db",
+              "targetPlatesOnlyKg": 10,
+              "dbCount": 2,
+              "baseImplementId": "db_metal_heavy",
+              "preferMaxPlateDiameterCm": 22,
+              "notes": "Prefer Metal Heavy",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d5_db_upright_row",
+              "name": "Dumbbell upright row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 18,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d5_db_seated_rear_flys",
+              "name": "Dumbbell seated rear flys",
+              "kind": "db",
+              "targetPlatesOnlyKg": 7.5,
+              "dbCount": 2,
+              "baseImplementId": "db_green"
+            },
+            {
+              "id": "p3d5_db_shrugs_i_use_barbell",
+              "name": "Dumbbell shrugs (I use barbell)",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 73
+            }
+          ]
+        },
+        {
+          "day": 6,
+          "exercises": [
+            {
+              "id": "p3d6_db_concentrated_curls",
+              "name": "Dumbbell concentrated curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 17,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d6_db_tension_curls",
+              "name": "Dumbbell tension curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 12.5,
+              "dbCount": 2,
+              "baseImplementId": "db_metal_heavy",
+              "maxPlateDiameterCm": 22,
+              "notes": "Prefer Metal Heavy",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d6_db_hammer_curls",
+              "name": "Dumbbell hammer curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 13,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p3d6_zottman_curls",
+              "name": "Zottman curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 11,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p3d6_banded_diamond_pushup",
+              "name": "Banded diamond push-up",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_purple_85", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p3d6_db_kickbacks",
+              "name": "Dumbbell kickbacks",
+              "kind": "db",
+              "targetPlatesOnlyKg": 15,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p3d6_banded_underhand_tricep_extension",
+              "name": "Banded underhand tricep extension",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_grey_dark_60", "qty": 1 },
+                  { "bandId": "handled_grey_clear_40", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "days": [
+        {
+          "day": 1,
+          "exercises": [
+            {
+              "id": "p4d1_barbell_floor_press",
+              "name": "Barbell floor press",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 60
+            },
+            {
+              "id": "p4d1_banded_elevated_pushup",
+              "name": "Banded elevated push-up",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_purple_85", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p4d1_standing_banded_chest_fly",
+              "name": "Standing banded chest-fly",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 },
+                  { "bandId": "handled_grey_dark_60", "qty": 1 },
+                  { "bandId": "handled_grey_clear_40", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p4d1_db_single_arm_alternating_bench_press",
+              "name": "Dumbbell single-arm alternating bench press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 32,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "excludeImplementIds": ["db_long_red"]
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "exercises": [
+            {
+              "id": "p4d2_db_single_arm_row",
+              "name": "Dumbbell single-arm row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 28,
+              "dbCount": 1,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d2_db_seated_rear_flys",
+              "name": "Dumbbell seated rear flys",
+              "kind": "db",
+              "targetPlatesOnlyKg": 11,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p4d2_barbell_bent_over_row",
+              "name": "Barbell bent-over row",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 20
+            },
+            {
+              "id": "p4d2_standing_banded_pull_over",
+              "name": "Standing banded pull-over",
+              "kind": "loopBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "loop",
+                "items": [
+                  { "bandId": "loop_green_125", "qty": 1 },
+                  { "bandId": "loop_red_35", "qty": 1 },
+                  { "bandId": "loop_yellow_15", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p4d2_banded_seated_row",
+              "name": "Banded seated row",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_black_70", "qty": 1 },
+                  { "bandId": "handled_grey_dark_60", "qty": 1 },
+                  { "bandId": "handled_grey_clear_40", "qty": 1 },
+                  { "bandId": "handled_turquoise_30", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "day": 4,
+          "exercises": [
+            {
+              "id": "p4d4_db_front_squat",
+              "name": "Dumbbell front squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 15,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d4_barbell_single_leg_hip_thrust",
+              "name": "Barbell single-leg hip thrust",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 54
+            },
+            {
+              "id": "p4d4_bulgarian_split_squat",
+              "name": "Bulgarian split squat",
+              "kind": "db",
+              "targetPlatesOnlyKg": 19,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p4d4_db_calf_raise_i_use_barbell",
+              "name": "Dumbbell calf raise (I use barbell)",
+              "kind": "barbell",
+              "targetPlatesOnlyKg": 94
+            }
+          ]
+        },
+        {
+          "day": 5,
+          "exercises": [
+            {
+              "id": "p4d5_db_seated_shoulder_press",
+              "name": "Dumbbell seated shoulder press",
+              "kind": "db",
+              "targetPlatesOnlyKg": 20,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d5_db_front_raise_rotation",
+              "name": "Dumbbell front raise + rotation",
+              "kind": "db",
+              "targetPlatesOnlyKg": 8,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d5_db_lateral_raise",
+              "name": "Dumbbell lateral raise",
+              "kind": "db",
+              "targetPlatesOnlyKg": 8,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d5_db_upright_row",
+              "name": "Dumbbell upright row",
+              "kind": "db",
+              "targetPlatesOnlyKg": 17,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d5_db_rear_raise",
+              "name": "Dumbbell rear raise",
+              "kind": "db",
+              "targetPlatesOnlyKg": 7,
+              "dbCount": 2,
+              "baseImplementId": "db_metal_heavy",
+              "maxPlateDiameterCm": 22,
+              "notes": "Prefer Metal Heavy",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d5_barbell_shrugs_actually_dumbbells",
+              "name": "Barbell shrugs (actually dumbbells)",
+              "kind": "db",
+              "targetPlatesOnlyKg": 28,
+              "dbCount": 2,
+              "baseImplementId": "db_green"
+            },
+            {
+              "id": "p4d5_weighted_plate_crunch",
+              "name": "Weighted plate crunch",
+              "kind": "plateOnly",
+              "targetPlatesOnlyKg": 10,
+              "plateOnlyCount": 2
+            }
+          ]
+        },
+        {
+          "day": 6,
+          "exercises": [
+            {
+              "id": "p4d6_db_hammer_curls",
+              "name": "Dumbbell hammer curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 17.5,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22
+            },
+            {
+              "id": "p4d6_db_tension_curls",
+              "name": "Dumbbell tension curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 13,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d6_zottman_curls",
+              "name": "Zottman curls",
+              "kind": "db",
+              "targetPlatesOnlyKg": 10.5,
+              "dbCount": 2,
+              "baseImplementId": "db_green",
+              "maxPlateDiameterCm": 22,
+              "excludeImplementIds": ["db_long_red"]
+            },
+            {
+              "id": "p4d6_banded_rope_pushdown",
+              "name": "Banded rope pushdown",
+              "kind": "bands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "mixed",
+                "items": [
+                  { "system": "handled", "bandId": "handled_black_70", "qty": 1 },
+                  { "system": "handled", "bandId": "handled_grey_clear_40", "qty": 1 },
+                  { "system": "loop", "bandId": "loop_red_35", "qty": 1 }
+                ]
+              }
+            },
+            {
+              "id": "p4d6_banded_underhand_tricep_extension",
+              "name": "Banded underhand tricep extension",
+              "kind": "handledBands",
+              "targetPlatesOnlyKg": 0,
+              "bandRecipe": {
+                "system": "handled",
+                "items": [
+                  { "bandId": "handled_grey_dark_60", "qty": 1 },
+                  { "bandId": "handled_new_grey_50", "qty": 1 },
+                  { "bandId": "handled_turquoise_30", "qty": 1 }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

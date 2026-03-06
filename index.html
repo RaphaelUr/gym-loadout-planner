@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Gym Loadout Planner</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Gym Loadout Planner</h1>
+    <div class="controls">
+      <label for="phaseSelect">Phase</label>
+      <select id="phaseSelect" aria-label="Select phase"></select>
+
+      <label for="daySelect">Day</label>
+      <select id="daySelect" aria-label="Select day"></select>
+
+      <button id="resetOverridesBtn" type="button">Reset Overrides</button>
+    </div>
+    <p id="statusLine" class="status">Loading...</p>
+  </header>
+
+  <main>
+    <section id="exerciseList" class="exercise-list" aria-live="polite"></section>
+  </main>
+
+  <template id="exerciseCardTemplate">
+    <article class="exercise-card">
+      <div class="card-top">
+        <h2 class="exercise-name"></h2>
+        <span class="type-badge"></span>
+      </div>
+
+      <div class="target-row">
+        <span class="target-label">Target load (plates-only, kg)</span>
+        <div class="target-editor">
+          <button class="target-display" type="button"></button>
+          <input class="target-input" type="number" step="0.5" min="0" inputmode="decimal" aria-label="Edit target load">
+        </div>
+      </div>
+
+      <div class="meta"></div>
+      <div class="loadout-placeholder">Loadout result (coming next step)</div>
+    </article>
+  </template>
+
+  <script src="./app.js" defer></script>
+  <script>
+    window.addEventListener("load", function () {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/service-worker.js");
+      }
+    });
+  </script>
+</body>
+</html>

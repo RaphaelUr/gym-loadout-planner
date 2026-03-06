@@ -1,0 +1,316 @@
+{
+  "plates": [
+    {
+      "id": "plate_iron_5_21_5",
+      "name": "Iron 5 (21.5cm)",
+      "weightKg": 5,
+      "boreCm": 2.5,
+      "thicknessCm": 3,
+      "diameterCm": 21.5,
+      "qty": 8
+    },
+    {
+      "id": "plate_iron_5_19_5",
+      "name": "Iron 5 (19.5cm)",
+      "weightKg": 5,
+      "boreCm": 2.5,
+      "thicknessCm": 3,
+      "diameterCm": 19.5,
+      "qty": 4
+    },
+    {
+      "id": "plate_plastic_3",
+      "name": "Plastic 3",
+      "weightKg": 3,
+      "boreCm": 2.5,
+      "thicknessCm": 4.9,
+      "diameterCm": 22,
+      "qty": 8
+    },
+    {
+      "id": "plate_plastic_2_b3",
+      "name": "Plastic 2 (bore 3.0)",
+      "weightKg": 2,
+      "boreCm": 3,
+      "thicknessCm": 5.3,
+      "diameterCm": 18,
+      "qty": 2
+    },
+    {
+      "id": "plate_plastic_1_25_v2",
+      "name": "Plastic 1.25 V2",
+      "weightKg": 1.25,
+      "boreCm": 2.5,
+      "thicknessCm": 3.4,
+      "diameterCm": 17.5,
+      "qty": 4
+    },
+    {
+      "id": "plate_plastic_1_25_v1",
+      "name": "Plastic 1.25 V1",
+      "weightKg": 1.25,
+      "boreCm": 2.5,
+      "thicknessCm": 3.3,
+      "diameterCm": 16,
+      "qty": 4
+    },
+    {
+      "id": "plate_plastic_2_5",
+      "name": "Plastic 2.5",
+      "weightKg": 2.5,
+      "boreCm": 2.5,
+      "thicknessCm": 4.5,
+      "diameterCm": 21,
+      "qty": 4
+    },
+    {
+      "id": "plate_plastic_2_b2_5",
+      "name": "Plastic 2 (bore 2.5)",
+      "weightKg": 2,
+      "boreCm": 2.5,
+      "thicknessCm": 4.2,
+      "diameterCm": 19,
+      "qty": 4
+    },
+    {
+      "id": "plate_plastic_1_5",
+      "name": "Plastic 1.5",
+      "weightKg": 1.5,
+      "boreCm": 2.5,
+      "thicknessCm": 4.3,
+      "diameterCm": 18,
+      "qty": 4
+    },
+    {
+      "id": "plate_iron_1_25",
+      "name": "Iron 1.25",
+      "weightKg": 1.25,
+      "boreCm": 3,
+      "thicknessCm": 1.9,
+      "diameterCm": 12.8,
+      "qty": 4
+    },
+    {
+      "id": "plate_iron_2",
+      "name": "Iron 2",
+      "weightKg": 2,
+      "boreCm": 3,
+      "thicknessCm": 3,
+      "diameterCm": 15.3,
+      "qty": 4
+    },
+    {
+      "id": "plate_iron_2_5",
+      "name": "Iron 2.5",
+      "weightKg": 2.5,
+      "boreCm": 3,
+      "thicknessCm": 2.1,
+      "diameterCm": 16.2,
+      "qty": 5
+    },
+    {
+      "id": "plate_iron_1",
+      "name": "Iron 1",
+      "weightKg": 1,
+      "boreCm": 3,
+      "thicknessCm": 1.7,
+      "diameterCm": 11.9,
+      "qty": 8
+    },
+    {
+      "id": "plate_iron_1_fat",
+      "name": "Iron 1 fat",
+      "weightKg": 1,
+      "boreCm": 2.5,
+      "thicknessCm": 1.4,
+      "diameterCm": 13.9,
+      "qty": 2
+    },
+    {
+      "id": "plate_iron_10_v2",
+      "name": "Iron 10 V2",
+      "weightKg": 10,
+      "boreCm": 3,
+      "thicknessCm": 2.6,
+      "diameterCm": 29.8,
+      "qty": 4
+    },
+    {
+      "id": "plate_iron_10_v1",
+      "name": "Iron 10 V1",
+      "weightKg": 10,
+      "boreCm": 3,
+      "thicknessCm": 3.2,
+      "diameterCm": 30,
+      "qty": 4
+    },
+    {
+      "id": "plate_iron_10_v3",
+      "name": "Iron 10 V3",
+      "weightKg": 10,
+      "boreCm": 3,
+      "thicknessCm": 3.5,
+      "diameterCm": 26.7,
+      "qty": 4
+    }
+  ],
+  "implements": [
+    {
+      "id": "db_red_light",
+      "name": "Red Light",
+      "kind": "dumbbell",
+      "sleeveDiameterCm": 2.4,
+      "sleeveLengthPerSideCm": 10.5,
+      "emptyWeightKg": 0.276,
+      "qty": 2
+    },
+    {
+      "id": "db_red_heavy",
+      "name": "Red Heavy",
+      "kind": "dumbbell",
+      "sleeveDiameterCm": 2.4,
+      "sleeveLengthPerSideCm": 10.9,
+      "emptyWeightKg": 0.359,
+      "qty": 2
+    },
+    {
+      "id": "db_green",
+      "name": "Green",
+      "kind": "dumbbell",
+      "sleeveDiameterCm": 2.4,
+      "sleeveLengthPerSideCm": 11.9,
+      "emptyWeightKg": 0.311,
+      "qty": 2
+    },
+    {
+      "id": "db_long_red",
+      "name": "Long Red",
+      "kind": "dumbbell",
+      "sleeveDiameterCm": 2.4,
+      "sleeveLengthPerSideCm": 17.2,
+      "emptyWeightKg": 0.505,
+      "qty": 2,
+      "tags": [
+        "avoid"
+      ]
+    },
+    {
+      "id": "db_metal_heavy",
+      "name": "Metal Heavy",
+      "kind": "dumbbell",
+      "sleeveDiameterCm": 2.8,
+      "sleeveLengthPerSideCm": 7.8,
+      "emptyWeightKg": 2.288,
+      "qty": 3
+    },
+    {
+      "id": "db_metal_light",
+      "name": "Metal Light",
+      "kind": "dumbbell",
+      "sleeveDiameterCm": 2.4,
+      "sleeveLengthPerSideCm": 8.4,
+      "emptyWeightKg": 1.514,
+      "qty": 1
+    },
+    {
+      "id": "bar_barbell",
+      "name": "Barbell",
+      "kind": "barbell",
+      "sleeveDiameterCm": 2.8,
+      "sleeveLengthPerSideCm": 20.3,
+      "emptyWeightKg": 20,
+      "qty": 1
+    },
+    {
+      "id": "bar_curl_bar",
+      "name": "Curl Bar",
+      "kind": "curlbar",
+      "sleeveDiameterCm": 2.8,
+      "sleeveLengthPerSideCm": 16.2,
+      "emptyWeightKg": 10,
+      "qty": 1
+    }
+  ],
+  "loopBands": [
+    {
+      "id": "loop_yellow_15",
+      "color": "Yellow",
+      "resistanceLb": 15,
+      "qty": 2
+    },
+    {
+      "id": "loop_red_35",
+      "color": "Red",
+      "resistanceLb": 35,
+      "qty": 2
+    },
+    {
+      "id": "loop_black_60",
+      "color": "Black",
+      "resistanceLb": 60,
+      "qty": 2
+    },
+    {
+      "id": "loop_purple_85",
+      "color": "Purple",
+      "resistanceLb": 85,
+      "qty": 1
+    },
+    {
+      "id": "loop_green_125",
+      "color": "Green",
+      "resistanceLb": 125,
+      "qty": 2
+    }
+  ],
+  "handledBands": [
+    {
+      "id": "handled_purple_20",
+      "name": "Handle Purple",
+      "resistanceLb": 20,
+      "qty": 1
+    },
+    {
+      "id": "handled_pink_10",
+      "name": "Handle Pink",
+      "resistanceLb": 10,
+      "qty": 1
+    },
+    {
+      "id": "handled_turquoise_30",
+      "name": "Handle Turquoise",
+      "resistanceLb": 30,
+      "qty": 1
+    },
+    {
+      "id": "handled_red_90",
+      "name": "Handle Red",
+      "resistanceLb": 90,
+      "qty": 1
+    },
+    {
+      "id": "handled_new_grey_50",
+      "name": "Handle New Grey",
+      "resistanceLb": 50,
+      "qty": 1
+    },
+    {
+      "id": "handled_black_70",
+      "name": "Handle Old/New Black",
+      "resistanceLb": 70,
+      "qty": 2
+    },
+    {
+      "id": "handled_grey_clear_40",
+      "name": "Handle Old Clear Grey",
+      "resistanceLb": 40,
+      "qty": 1
+    },
+    {
+      "id": "handled_grey_dark_60",
+      "name": "Handle Old Dark Grey",
+      "resistanceLb": 60,
+      "qty": 1
+    }
+  ]
+}
