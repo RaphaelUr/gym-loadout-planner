@@ -1459,110 +1459,195 @@ function solveIndependentSingleDbPlateCombos({ exercise, implement, totalTargetK
     return [];
   }
 
-  const leftCounts = new Array(allowedPlates.length).fill(0);
-  const rightCounts = new Array(allowedPlates.length).fill(0);
-  const results = [];
   const maxThickness = getEffectiveImplementSleeveLengthPerSideCm(implement);
+  const maxSideWeightKg = totalTargetKg + toleranceTotal;
+  const counts = new Array(allowedPlates.length).fill(0);
+  const sideComboBuckets = new Map();
+  const SIDE_COMBOS_PER_WEIGHT = 8;
 
-  function backtrack(index, currentWeight, leftThickness, rightThickness) {
-    if (leftThickness - maxThickness > 1e-9 || rightThickness - maxThickness > 1e-9) {
-      return;
-    }
-    if (currentWeight - totalTargetKg > toleranceTotal + 1e-9) {
-      return;
-    }
-
-    if (index === allowedPlates.length) {
-      const diff = Math.abs(currentWeight - totalTargetKg);
-      if (diff > toleranceTotal + 1e-9) {
-        return;
+  function collectSideCombo(currentWeight) {
+    const plates = [];
+    let totalCount = 0;
+    let maxDiameter = 0;
+    let uses10kgDb = 0;
+    let uses10kgDb267 = 0;
+    for (let i = 0; i < allowedPlates.length; i += 1) {
+      const qty = counts[i];
+      if (qty <= 0) {
+        continue;
       }
-
-      const sideLayouts = [[], []];
-      let maxDiameter = 0;
-      let uses10kgDb = 0;
-      let uses10kgDb267 = 0;
-
-      for (let i = 0; i < allowedPlates.length; i += 1) {
-        const plate = allowedPlates[i];
-        if (leftCounts[i] > 0) {
-          sideLayouts[0].push({
-            id: plate.id,
-            weightKg: Number(plate.weightKg),
-            qty: leftCounts[i],
-            diameterCm: Number(plate.diameterCm)
-          });
-        }
-        if (rightCounts[i] > 0) {
-          sideLayouts[1].push({
-            id: plate.id,
-            weightKg: Number(plate.weightKg),
-            qty: rightCounts[i],
-            diameterCm: Number(plate.diameterCm)
-          });
-        }
-        if (leftCounts[i] > 0 || rightCounts[i] > 0) {
-          maxDiameter = Math.max(maxDiameter, Number(plate.diameterCm) || 0);
-          if (Math.abs(Number(plate.weightKg) - 10) < 0.0001) {
-            uses10kgDb = 1;
-            if (Math.abs(Number(plate.diameterCm) - 26.7) < 0.25) {
-              uses10kgDb267 = 1;
-            }
-          }
-        }
-      }
-
-      const leftWeight = sumPlateWeight(sideLayouts[0]);
-      const rightWeight = sumPlateWeight(sideLayouts[1]);
-      const totalPlateCount = sideLayouts.reduce((sum, side) => {
-        return sum + side.reduce((sideSum, plate) => sideSum + Number(plate.qty || 0), 0);
-      }, 0);
-
-      results.push({
-        sideLayouts,
-        totalWeightKg: currentWeight,
-        totalPlateCount,
-        maxDiameterUsed: maxDiameter,
-        uses10kgDbPlate: uses10kgDb,
-        uses10kgDb26_7: uses10kgDb267,
-        absDiffKg: diff,
-        balanceDiffKg: Math.abs(leftWeight - rightWeight)
+      const plate = allowedPlates[i];
+      plates.push({
+        id: plate.id,
+        weightKg: Number(plate.weightKg),
+        qty,
+        diameterCm: Number(plate.diameterCm)
       });
+      totalCount += qty;
+      maxDiameter = Math.max(maxDiameter, Number(plate.diameterCm) || 0);
+      if (Math.abs(Number(plate.weightKg) - 10) < 0.0001) {
+        uses10kgDb = 1;
+        if (Math.abs(Number(plate.diameterCm) - 26.7) < 0.25) {
+          uses10kgDb267 = 1;
+        }
+      }
+    }
+    const combo = {
+      plates,
+      totalWeightKg: currentWeight,
+      totalPlateCount: totalCount,
+      maxDiameterUsed: maxDiameter,
+      uses10kgDbPlate: uses10kgDb,
+      uses10kgDb26_7: uses10kgDb267,
+      signature: sortPlateEntriesForDisplay(plates)
+        .map((plate) => `${plate.id}x${plate.qty}`)
+        .join("|")
+    };
+    const weightKey = Math.round(currentWeight * 4);
+    const bucket = sideComboBuckets.get(weightKey) || [];
+    const existingIndex = bucket.findIndex((item) => item.signature === combo.signature);
+    if (existingIndex >= 0) {
+      const existing = bucket[existingIndex];
+      if (isSideComboBetter(combo, existing)) {
+        bucket[existingIndex] = combo;
+      }
+    } else {
+      bucket.push(combo);
+    }
+    bucket.sort(compareSideCombos);
+    if (bucket.length > SIDE_COMBOS_PER_WEIGHT) {
+      bucket.length = SIDE_COMBOS_PER_WEIGHT;
+    }
+    sideComboBuckets.set(weightKey, bucket);
+  }
+
+  function buildSideCombos(index, currentWeight, currentThickness) {
+    if (currentThickness - maxThickness > 1e-9 || currentWeight - maxSideWeightKg > 1e-9) {
+      return;
+    }
+    if (index === allowedPlates.length) {
+      collectSideCombo(currentWeight);
       return;
     }
 
     const plate = allowedPlates[index];
     const plateWeight = Number(plate.weightKg || 0);
     const plateThickness = Number(plate.thicknessCm || 0);
-    const maxQty = Number(plate.qty || 0);
+    const maxQtyByWeight = plateWeight > 0
+      ? Math.floor((maxSideWeightKg - currentWeight + 1e-9) / plateWeight)
+      : Number(plate.qty || 0);
+    const maxQtyByThickness = plateThickness > 0
+      ? Math.floor((maxThickness - currentThickness + 1e-9) / plateThickness)
+      : Number(plate.qty || 0);
+    const maxQty = Math.max(0, Math.min(Number(plate.qty || 0), maxQtyByWeight, maxQtyByThickness));
 
-    for (let leftQty = 0; leftQty <= maxQty; leftQty += 1) {
-      const nextLeftThickness = leftThickness + (leftQty * plateThickness);
-      if (nextLeftThickness - maxThickness > 1e-9) {
-        break;
-      }
-      for (let rightQty = 0; rightQty <= (maxQty - leftQty); rightQty += 1) {
-        const nextRightThickness = rightThickness + (rightQty * plateThickness);
-        if (nextRightThickness - maxThickness > 1e-9) {
-          break;
-        }
-        leftCounts[index] = leftQty;
-        rightCounts[index] = rightQty;
-        backtrack(
-          index + 1,
-          currentWeight + ((leftQty + rightQty) * plateWeight),
-          nextLeftThickness,
-          nextRightThickness
-        );
-      }
+    for (let qty = 0; qty <= maxQty; qty += 1) {
+      counts[index] = qty;
+      buildSideCombos(
+        index + 1,
+        currentWeight + (qty * plateWeight),
+        currentThickness + (qty * plateThickness)
+      );
     }
-
-    leftCounts[index] = 0;
-    rightCounts[index] = 0;
+    counts[index] = 0;
   }
 
-  backtrack(0, 0, 0, 0);
+  buildSideCombos(0, 0, 0);
+
+  const uniqueSideCombos = Array.from(sideComboBuckets.values()).flat();
+
+  const results = [];
+  const resultBySignature = new Map();
+
+  for (let leftIndex = 0; leftIndex < uniqueSideCombos.length; leftIndex += 1) {
+    const left = uniqueSideCombos[leftIndex];
+    for (let rightIndex = leftIndex; rightIndex < uniqueSideCombos.length; rightIndex += 1) {
+      const right = uniqueSideCombos[rightIndex];
+      const totalWeightKg = Number(left.totalWeightKg || 0) + Number(right.totalWeightKg || 0);
+      const absDiffKg = Math.abs(totalWeightKg - totalTargetKg);
+      if (absDiffKg > toleranceTotal + 1e-9) {
+        continue;
+      }
+
+      const combinedUsage = {};
+      for (const plate of left.plates || []) {
+        combinedUsage[plate.id] = (combinedUsage[plate.id] || 0) + Number(plate.qty || 0);
+      }
+      for (const plate of right.plates || []) {
+        combinedUsage[plate.id] = (combinedUsage[plate.id] || 0) + Number(plate.qty || 0);
+      }
+
+      let valid = true;
+      for (const [plateId, qty] of Object.entries(combinedUsage)) {
+        const available = Number(findPlateById(plateId)?.qty || 0);
+        if (Number(qty || 0) > available) {
+          valid = false;
+          break;
+        }
+      }
+      if (!valid) {
+        continue;
+      }
+
+      const orderedSides = [left, right].sort((a, b) => a.signature.localeCompare(b.signature));
+      const sideLayouts = orderedSides.map((side) => side.plates);
+      const resultSignature = buildSideLayoutSignature(sideLayouts);
+      const candidate = {
+        sideLayouts,
+        totalWeightKg,
+        totalPlateCount: Number(left.totalPlateCount || 0) + Number(right.totalPlateCount || 0),
+        maxDiameterUsed: Math.max(Number(left.maxDiameterUsed || 0), Number(right.maxDiameterUsed || 0)),
+        uses10kgDbPlate: Math.max(Number(left.uses10kgDbPlate || 0), Number(right.uses10kgDbPlate || 0)),
+        uses10kgDb26_7: Math.max(Number(left.uses10kgDb26_7 || 0), Number(right.uses10kgDb26_7 || 0)),
+        absDiffKg,
+        balanceDiffKg: Math.abs(Number(left.totalWeightKg || 0) - Number(right.totalWeightKg || 0))
+      };
+
+      const previous = resultBySignature.get(resultSignature);
+      if (!previous || isIndependentDbComboBetter(candidate, previous)) {
+        resultBySignature.set(resultSignature, candidate);
+      }
+    }
+  }
+
+  results.push(...resultBySignature.values());
   return results;
+}
+
+function compareSideCombos(a, b) {
+  if (a.totalPlateCount !== b.totalPlateCount) {
+    return a.totalPlateCount - b.totalPlateCount;
+  }
+  if (a.uses10kgDbPlate !== b.uses10kgDbPlate) {
+    return a.uses10kgDbPlate - b.uses10kgDbPlate;
+  }
+  if (a.uses10kgDb26_7 !== b.uses10kgDb26_7) {
+    return b.uses10kgDb26_7 - a.uses10kgDb26_7;
+  }
+  if (a.maxDiameterUsed !== b.maxDiameterUsed) {
+    return a.maxDiameterUsed - b.maxDiameterUsed;
+  }
+  return String(a.signature || "").localeCompare(String(b.signature || ""));
+}
+
+function isSideComboBetter(a, b) {
+  return compareSideCombos(a, b) < 0;
+}
+
+function isIndependentDbComboBetter(a, b) {
+  if (a.absDiffKg !== b.absDiffKg) {
+    return a.absDiffKg < b.absDiffKg;
+  }
+  if (a.balanceDiffKg !== b.balanceDiffKg) {
+    return a.balanceDiffKg < b.balanceDiffKg;
+  }
+  if (a.totalPlateCount !== b.totalPlateCount) {
+    return a.totalPlateCount < b.totalPlateCount;
+  }
+  if (a.maxDiameterUsed !== b.maxDiameterUsed) {
+    return a.maxDiameterUsed < b.maxDiameterUsed;
+  }
+  return false;
 }
 
 function getImplementOptionsForWeightExercise(exercise) {

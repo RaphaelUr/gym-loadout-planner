@@ -1,4 +1,4 @@
-const CACHE_NAME = "glp-cache-v4";
+const CACHE_NAME = "glp-cache-v5";
 const APP_SHELL_PATHS = [
   "",
   "index.html",
