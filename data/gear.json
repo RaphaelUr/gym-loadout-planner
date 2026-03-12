@@ -217,7 +217,7 @@
       "name": "Barbell",
       "kind": "barbell",
       "sleeveDiameterCm": 2.8,
-      "sleeveLengthPerSideCm": 20.3,
+      "sleeveLengthPerSideCm": 22,
       "emptyWeightKg": 20,
       "qty": 1
     },

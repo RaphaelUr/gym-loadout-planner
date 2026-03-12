@@ -420,19 +420,32 @@ function buildDonorStateFromDbCandidate(exercise, candidate) {
   if (!exercise || !candidate || candidate.kind !== "db") {
     return null;
   }
-  const orderedPerSide = [...(candidate.perSidePlates || [])].sort((a, b) => {
-    if (Number(b.weightKg) !== Number(a.weightKg)) {
-      return Number(b.weightKg) - Number(a.weightKg);
-    }
-    return String(a.id).localeCompare(String(b.id));
-  });
-  const oneDbQueue = [];
-  for (let i = orderedPerSide.length - 1; i >= 0; i -= 1) {
-    const plate = orderedPerSide[i];
-    for (let j = 0; j < Number(plate.qty || 0); j += 1) {
-      oneDbQueue.push({ plateId: plate.id, plateWeightKg: Number(plate.weightKg || 0) });
+  const sideLayouts = getSetupSideLayouts(candidate);
+  const leftQueue = [];
+  const rightQueue = [];
+  for (const plate of [...sortPlateEntriesForDisplay(sideLayouts[0] || [])].reverse()) {
+    for (let i = 0; i < Number(plate.qty || 0); i += 1) {
+      leftQueue.push({ plateId: plate.id, plateWeightKg: Number(plate.weightKg || 0) });
     }
   }
+  for (const plate of [...sortPlateEntriesForDisplay(sideLayouts[1] || sideLayouts[0] || [])].reverse()) {
+    for (let i = 0; i < Number(plate.qty || 0); i += 1) {
+      rightQueue.push({ plateId: plate.id, plateWeightKg: Number(plate.weightKg || 0) });
+    }
+  }
+
+  const oneDbQueue = [];
+  while (leftQueue.length > 0 && rightQueue.length > 0) {
+    const leftOuter = leftQueue[0];
+    const rightOuter = rightQueue[0];
+    if (!leftOuter || !rightOuter || leftOuter.plateId !== rightOuter.plateId) {
+      break;
+    }
+    oneDbQueue.push({ plateId: leftOuter.plateId, plateWeightKg: Number(leftOuter.plateWeightKg || 0) });
+    leftQueue.shift();
+    rightQueue.shift();
+  }
+
   const dbCount = Math.max(1, Number(candidate.dbCount || 1));
   const queuesByDumbbell = [];
   for (let i = 0; i < dbCount; i += 1) {
@@ -478,6 +491,151 @@ function compareTransferScores(a, b) {
   if (a.totalPairsMoved !== b.totalPairsMoved) return a.totalPairsMoved - b.totalPairsMoved;
   if (a.totalMovedMassKg !== b.totalMovedMassKg) return a.totalMovedMassKg - b.totalMovedMassKg;
   return 0;
+}
+
+function emptyTransferScore() {
+  return {
+    donorsTouched: 0,
+    totalDonorDumbbellsUnlocked: 0,
+    totalPairsMoved: 0,
+    totalMovedMassKg: 0
+  };
+}
+
+function isBarbellCandidateKind(kind) {
+  return kind === "barbell" || kind === "curlbar";
+}
+
+function findPlateById(plateId) {
+  return (state.gear.plates || []).find((plate) => plate.id === plateId) || null;
+}
+
+function buildBarbellReloadPlan(previousCandidate, nextCandidate, fromExerciseName = "") {
+  if (!previousCandidate || !nextCandidate) {
+    return null;
+  }
+  if (!isBarbellCandidateKind(previousCandidate.kind) || !isBarbellCandidateKind(nextCandidate.kind)) {
+    return null;
+  }
+
+  const removePairs = [];
+  const addPairs = [];
+  let totalPairsMoved = 0;
+  let totalMovedMassKg = 0;
+  const plateIds = new Set([
+    ...Object.keys(previousCandidate.usage || {}),
+    ...Object.keys(nextCandidate.usage || {})
+  ]);
+
+  for (const plateId of plateIds) {
+    const previousPairs = Number(previousCandidate.usage?.[plateId] || 0) / 2;
+    const nextPairs = Number(nextCandidate.usage?.[plateId] || 0) / 2;
+    const deltaPairs = nextPairs - previousPairs;
+    if (Math.abs(deltaPairs) < 0.0001) {
+      continue;
+    }
+    const plate = findPlateById(plateId);
+    const item = {
+      plateId,
+      plateWeightKg: Number(plate?.weightKg || 0),
+      pairCount: Math.abs(deltaPairs)
+    };
+    totalPairsMoved += Math.abs(deltaPairs);
+    totalMovedMassKg += Math.abs(deltaPairs) * Number(plate?.weightKg || 0);
+    if (deltaPairs > 0) {
+      addPairs.push(item);
+    } else {
+      removePairs.push(item);
+    }
+  }
+
+  if (addPairs.length === 0 && removePairs.length === 0) {
+    return null;
+  }
+
+  const sortPairs = (pairs) => pairs.sort((a, b) => {
+    if (Number(b.plateWeightKg) !== Number(a.plateWeightKg)) {
+      return Number(b.plateWeightKg) - Number(a.plateWeightKg);
+    }
+    return String(a.plateId).localeCompare(String(b.plateId));
+  });
+  sortPairs(removePairs);
+  sortPairs(addPairs);
+
+  return {
+    fromExerciseName,
+    removePairs,
+    addPairs,
+    totalPairsMoved,
+    totalMovedMassKg
+  };
+}
+
+function compareReloadPlans(a, b) {
+  const left = a || { totalPairsMoved: 0, totalMovedMassKg: 0 };
+  const right = b || { totalPairsMoved: 0, totalMovedMassKg: 0 };
+  if (left.totalPairsMoved !== right.totalPairsMoved) {
+    return left.totalPairsMoved - right.totalPairsMoved;
+  }
+  if (left.totalMovedMassKg !== right.totalMovedMassKg) {
+    return left.totalMovedMassKg - right.totalMovedMassKg;
+  }
+  return 0;
+}
+
+function compareSequentialBarbellChoices(a, b) {
+  if (!b) {
+    return -1;
+  }
+  const transferCompare = compareTransferScores(a.transferScore || emptyTransferScore(), b.transferScore || emptyTransferScore());
+  if (transferCompare !== 0) {
+    return transferCompare;
+  }
+  const reloadCompare = compareReloadPlans(a.reloadPlan, b.reloadPlan);
+  if (reloadCompare !== 0) {
+    return reloadCompare;
+  }
+  if (a.candidate.absDiffKg !== b.candidate.absDiffKg) {
+    return a.candidate.absDiffKg - b.candidate.absDiffKg;
+  }
+  if (a.candidate.totalPlatesCount !== b.candidate.totalPlatesCount) {
+    return a.candidate.totalPlatesCount - b.candidate.totalPlatesCount;
+  }
+  if ((a.candidate.softPenalty || 0) !== (b.candidate.softPenalty || 0)) {
+    return (a.candidate.softPenalty || 0) - (b.candidate.softPenalty || 0);
+  }
+  return String(a.candidate.signature || "").localeCompare(String(b.candidate.signature || ""));
+}
+
+function formatPlatePairList(pairs) {
+  return (pairs || [])
+    .map((pair) => `${Number(pair.plateWeightKg || 0)}kg pair x${Number(pair.pairCount || 0)}`)
+    .join(", ");
+}
+
+function buildLaterBarbellPlatePressure(weightExercises, candidatesByExercise, startIndex) {
+  const pressure = {};
+  for (let i = startIndex + 1; i < weightExercises.length; i += 1) {
+    const exercise = weightExercises[i];
+    if (!isBarbellCandidateKind(exercise?.kind)) {
+      continue;
+    }
+    const candidates = (candidatesByExercise.get(exercise.id) || []).slice(0, 4);
+    for (let rank = 0; rank < candidates.length; rank += 1) {
+      const candidate = candidates[rank];
+      const weight = Math.max(1, 4 - rank);
+      for (const [plateId, qty] of Object.entries(candidate?.usage || {})) {
+        pressure[plateId] = (pressure[plateId] || 0) + (Number(qty || 0) * weight);
+      }
+    }
+  }
+  return pressure;
+}
+
+function getFutureBarbellOverlapPenalty(candidate, pressure) {
+  return Object.entries(candidate?.usage || {}).reduce((sum, [plateId, qty]) => {
+    return sum + (Number(qty || 0) * Number(pressure?.[plateId] || 0));
+  }, 0);
 }
 
 function getMinimalTransferDeficitPairs(candidate, usage, inventory) {
@@ -682,6 +840,7 @@ function hasLaterPersistentWeightExercise(weightExercises, startIndex) {
 function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExercise, initialChosenByExercise) {
   const chosenByExercise = new Map();
   const transferPlanByExerciseId = {};
+  const reloadPlanByExerciseId = {};
   const inventory = buildDayPlateInventory();
   const implementQtyById = buildDayImplementQtyById();
   const persistentExercises = weightExercises.filter((exercise) => exercise.kind === "db" || exercise.kind === "plateOnly");
@@ -698,6 +857,7 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
   const persistentEntries = [];
   const usage = {};
   let donorStates = {};
+  let previousBarbellChoice = null;
 
   for (let index = 0; index < weightExercises.length; index += 1) {
     const exercise = weightExercises[index];
@@ -705,12 +865,44 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
     const ordered = getOrderedWeightCandidatesForExercise(exercise, candidates);
 
     if (exercise.kind === "db" || exercise.kind === "plateOnly") {
-      let chosen = strictPersistentChosen.get(exercise.id) || null;
+      const laterBarbellPressure = buildLaterBarbellPlatePressure(weightExercises, candidatesByExercise, index);
+      let chosen = null;
+
+      if (Object.keys(laterBarbellPressure).length > 0) {
+        const candidateWindow = ordered.slice(0, Math.min(8, ordered.length));
+        for (const candidate of candidateWindow) {
+          if (!chosen) {
+            chosen = candidate;
+            continue;
+          }
+          const candidatePenalty = getFutureBarbellOverlapPenalty(candidate, laterBarbellPressure);
+          const chosenPenalty = getFutureBarbellOverlapPenalty(chosen, laterBarbellPressure);
+          if (candidatePenalty !== chosenPenalty) {
+            if (candidatePenalty < chosenPenalty) {
+              chosen = candidate;
+            }
+            continue;
+          }
+          if (candidate.absDiffKg !== chosen.absDiffKg) {
+            if (candidate.absDiffKg < chosen.absDiffKg) {
+              chosen = candidate;
+            }
+            continue;
+          }
+          if (candidate.totalPlatesCount !== chosen.totalPlatesCount) {
+            if (candidate.totalPlatesCount < chosen.totalPlatesCount) {
+              chosen = candidate;
+            }
+            continue;
+          }
+          if ((candidate.softPenalty || 0) < (chosen.softPenalty || 0)) {
+            chosen = candidate;
+          }
+        }
+      }
+
       if (!chosen) {
-        chosen = ordered.find((candidate) => isWeightPlanFeasible([
-          ...persistentEntries,
-          { exerciseId: exercise.id, candidate }
-        ], state.gear)) || null;
+        chosen = strictPersistentChosen.get(exercise.id) || ordered[0] || null;
       }
       if (!chosen) {
         continue;
@@ -731,19 +923,6 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
       continue;
     }
 
-    const strictChosen = ordered.find((candidate) => isWeightPlanFeasible([
-      ...persistentEntries,
-      { exerciseId: exercise.id, candidate }
-    ], state.gear)) || null;
-    if (strictChosen) {
-      chosenByExercise.set(exercise.id, strictChosen);
-      continue;
-    }
-
-    if (hasLaterPersistentWeightExercise(weightExercises, index)) {
-      continue;
-    }
-
     let rescued = null;
     for (const candidate of ordered) {
       const attempt = attemptMinimalTransferRescueForCandidate({
@@ -755,12 +934,21 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
       if (!attempt) {
         continue;
       }
-      if (!rescued || compareTransferScores(attempt.score, rescued.score) < 0) {
+      const reloadPlan = buildBarbellReloadPlan(
+        previousBarbellChoice?.candidate || null,
+        candidate,
+        previousBarbellChoice?.exerciseName || ""
+      );
+      const evaluated = {
+        candidate,
+        steps: attempt.steps,
+        donorStates: attempt.donorStates,
+        transferScore: attempt.score || emptyTransferScore(),
+        reloadPlan
+      };
+      if (!rescued || compareSequentialBarbellChoices(evaluated, rescued) < 0) {
         rescued = {
-          candidate,
-          steps: attempt.steps,
-          donorStates: attempt.donorStates,
-          score: attempt.score
+          ...evaluated
         };
       }
     }
@@ -781,11 +969,18 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
           usage[step.plateId] = nextQty;
         }
       }
-      donorStates = rescued.donorStates || donorStates;
     }
+    donorStates = rescued.donorStates || donorStates;
+    if (rescued.reloadPlan) {
+      reloadPlanByExerciseId[exercise.id] = rescued.reloadPlan;
+    }
+    previousBarbellChoice = {
+      candidate: rescued.candidate,
+      exerciseName: exercise.name
+    };
   }
 
-  return { chosenByExercise, transferPlanByExerciseId };
+  return { chosenByExercise, transferPlanByExerciseId, reloadPlanByExerciseId };
 }
 
 function getTargetValue(exercise) {
@@ -877,10 +1072,8 @@ function normalizeDbInputDisplayValue(value) {
 }
 
 function getChosenDbPlatesPerDbKg(chosenSetup) {
-  const perSide = (chosenSetup?.perSidePlates || []).reduce((sum, plate) => {
-    return sum + (Number(plate.weightKg || 0) * Number(plate.qty || 0));
-  }, 0);
-  const fromPlates = perSide * 2;
+  const sideLayouts = getSetupSideLayouts(chosenSetup);
+  const fromPlates = sideLayouts.reduce((sum, side) => sum + sumPlateWeight(side), 0);
   if (fromPlates > 0 || (chosenSetup?.perSidePlates || []).length > 0) {
     return fromPlates;
   }
@@ -932,6 +1125,28 @@ function buildWeightSetupUi(exercise, targetKg, dayWeightPlan, dayExercises) {
   chosenMeta.className = "weight-setup-meta";
   chosenMeta.textContent = `Total plates used: ${chosen.totalPlatesCount}`;
   wrapper.append(chosenMeta);
+
+  const reloadPlan = dayWeightPlan?.reloadPlanByExerciseId?.[exercise.id] || null;
+  if (reloadPlan) {
+    const notice = document.createElement("p");
+    notice.className = "weight-setup-meta";
+    notice.textContent = `Reload after ${reloadPlan.fromExerciseName}.`;
+    wrapper.append(notice);
+
+    if ((reloadPlan.removePairs || []).length > 0) {
+      const removeLine = document.createElement("p");
+      removeLine.className = "weight-setup-meta";
+      removeLine.textContent = `- Remove: ${formatPlatePairList(reloadPlan.removePairs)}`;
+      wrapper.append(removeLine);
+    }
+
+    if ((reloadPlan.addPairs || []).length > 0) {
+      const addLine = document.createElement("p");
+      addLine.className = "weight-setup-meta";
+      addLine.textContent = `- Add: ${formatPlatePairList(reloadPlan.addPairs)}`;
+      wrapper.append(addLine);
+    }
+  }
 
   const transferSteps = dayWeightPlan?.transferPlanByExerciseId?.[exercise.id] || [];
   if (transferSteps.length > 0) {
@@ -1044,43 +1259,81 @@ function solveWeightExercise(exercise, targetKg, maxResults = 4) {
     });
 
   for (const plan of plans) {
-    const tolerancePerSide = plan.overallSides > 1 ? toleranceTotal / plan.overallSides : toleranceTotal;
-    const oneSideCombos = solveOneSidePlateCombos({
-      exercise,
-      implement: plan.implement,
-      perSideTargetKg: plan.perSideTargetKg,
-      overallSides: plan.overallSides,
-      tolerancePerSide
-    });
+    const useIndependentSides = exercise.kind === "db"
+      && Number(plan.dbCount || 0) === 1
+      && allowsIndependentDbSides(exercise);
 
-    for (const combo of oneSideCombos) {
-      const totalDiff = combo.absDiffPerSide * plan.overallSides;
-      const usesMixed = false;
+    const comboPool = useIndependentSides
+      ? solveIndependentSingleDbPlateCombos({
+        exercise,
+        implement: plan.implement,
+        totalTargetKg: plan.adjustedPlatesTargetKg,
+        toleranceTotal
+      })
+      : solveOneSidePlateCombos({
+        exercise,
+        implement: plan.implement,
+        perSideTargetKg: plan.perSideTargetKg,
+        overallSides: plan.overallSides,
+        tolerancePerSide: plan.overallSides > 1 ? toleranceTotal / plan.overallSides : toleranceTotal
+      }).map((combo) => ({
+        sideLayouts: plan.overallSides === 1
+          ? [combo.plates]
+          : [combo.plates, combo.plates],
+        totalWeightKg: combo.totalPerSideWeight * (plan.overallSides === 1 ? 1 : 2),
+        totalPlateCount: combo.totalPerSideCount * (plan.overallSides === 1 ? 1 : 2),
+        maxDiameterUsed: combo.maxDiameterUsed,
+        uses10kgDbPlate: combo.uses10kgDbPlate,
+        uses10kgDb26_7: combo.uses10kgDb26_7,
+        absDiffKg: combo.absDiffPerSide * plan.overallSides,
+        balanceDiffKg: 0
+      }));
+
+    for (const combo of comboPool) {
+      const sideLayouts = combo.sideLayouts || [];
+      const oneUnitUsage = buildUsageFromSideLayouts(sideLayouts, 1);
+      const totalUsage = exercise.kind === "db"
+        ? buildUsageFromSideLayouts(sideLayouts, Number(plan.dbCount || 1))
+        : buildUsageFromSideLayouts(sideLayouts, 1);
+      const totalPlateCount = Object.values(totalUsage).reduce((sum, qty) => sum + Number(qty || 0), 0);
+      const totalPlatesKg = Object.entries(totalUsage).reduce((sum, [plateId, qty]) => {
+        const plate = (state.gear.plates || []).find((item) => item.id === plateId);
+        return sum + (Number(plate?.weightKg || 0) * Number(qty || 0));
+      }, 0);
+      const reuseKey = exercise.kind === "db"
+        ? buildDbReuseSignature(plan.implement?.id || "plate_only", sideLayouts[0] || [], sideLayouts)
+        : null;
       const setup = {
         implementId: plan.implement?.id || "plate_only",
         implementLabel: plan.label,
         kind: exercise.kind,
         dbCount: exercise.kind === "db" ? (plan.dbCount || 1) : null,
-        perSidePlates: combo.plates,
-        totalPlatesCount: combo.totalPerSideCount * plan.overallSides,
-        totalPlatesKg: combo.totalPerSideWeight * plan.overallSides,
+        perSidePlates: sideLayouts[0] || [],
+        sideLayouts,
+        displayIndependentSides: useIndependentSides,
+        totalPlatesCount: totalPlateCount,
+        totalPlatesKg,
         maxDiameterUsed: combo.maxDiameterUsed,
         uses10kgDbPlate: combo.uses10kgDbPlate,
         uses10kgDb26_7: combo.uses10kgDb26_7,
         dbLongRedPenalty: plan.implement?.id === "db_long_red" ? 1 : 0,
         baseMismatchPenalty: exercise.kind === "db" && configuredBaseDb && plan.implement?.id !== configuredBaseDb.id ? 1 : 0,
-        absDiffKg: totalDiff,
-        mixedPenalty: usesMixed ? 1 : 0,
-        signature: buildWeightSetupSignature(plan.implement?.id || "plate_only", combo.plates),
-        dbReuseSignature: exercise.kind === "db"
-          ? buildDbReuseSignature(plan.implement?.id || "plate_only", combo.plates)
+        absDiffKg: combo.absDiffKg,
+        balanceDiffKg: Number(combo.balanceDiffKg || 0),
+        mixedPenalty: 0,
+        signature: buildWeightSetupSignature(plan.implement?.id || "plate_only", sideLayouts[0] || [], sideLayouts),
+        dbReuseSignature: reuseKey,
+        plasticReuseSignature: exercise.kind === "db" && isPlasticDumbbell(plan.implement?.id) && !useIndependentSides
+          ? buildPlasticDbReuseSignature(plan.implement?.id || "plate_only", sideLayouts[0] || [])
           : null,
-        plasticReuseSignature: exercise.kind === "db" && isPlasticDumbbell(plan.implement?.id)
-          ? buildPlasticDbReuseSignature(plan.implement?.id || "plate_only", combo.plates)
+        perSideUsage: !useIndependentSides && sideLayouts.length > 0
+          ? buildWeightUsageMap(sideLayouts[0], 1)
           : null,
-        perSideUsage: buildWeightUsageMap(combo.plates, 1),
         overallSides: plan.overallSides,
-        usage: buildWeightUsageMap(combo.plates, plan.overallSides),
+        usage: totalUsage,
+        reuseKey,
+        reuseUnitUsage: exercise.kind === "db" ? oneUnitUsage : null,
+        reuseUnitsNeeded: exercise.kind === "db" ? Number(plan.dbCount || 1) : 0,
         platesPerDbKg: plan.adjustedPlatesTargetKg,
         adjustedPlatesPerDBKg: plan.adjustedPlatesTargetKg,
         effectiveTotalPerDBKg: plan.effectiveTotalTargetKgPerDB,
@@ -1088,7 +1341,11 @@ function solveWeightExercise(exercise, targetKg, maxResults = 4) {
         baseImplementLabel: plan.baseImplement?.name || null,
         baseImplementEmptyWeightKg: plan.baseImplement?.emptyWeightKg ?? null
       };
-      setup.softPenalty = (setup.dbLongRedPenalty * 100) + (setup.uses10kgDbPlate * 30) - (setup.uses10kgDb26_7 * 5) + (setup.baseMismatchPenalty * 25);
+      setup.softPenalty = (setup.dbLongRedPenalty * 100)
+        + (setup.uses10kgDbPlate * 30)
+        - (setup.uses10kgDb26_7 * 5)
+        + (setup.baseMismatchPenalty * 25)
+        + (setup.balanceDiffKg * 0.1);
       candidates.push(setup);
     }
   }
@@ -1130,18 +1387,7 @@ function solveWeightExercise(exercise, targetKg, maxResults = 4) {
 }
 
 function solveOneSidePlateCombos({ exercise, implement, perSideTargetKg, overallSides, tolerancePerSide }) {
-  const allowedPlates = (state.gear.plates || []).filter((plate) => {
-    if (exercise.maxPlateDiameterCm && Number(plate.diameterCm) > Number(exercise.maxPlateDiameterCm)) {
-      return false;
-    }
-    if (!implement) {
-      return true;
-    }
-    if (Number(plate.boreCm) < Number(implement.sleeveDiameterCm)) {
-      return false;
-    }
-    return true;
-  });
+  const allowedPlates = getAllowedPlatesForLoad(exercise, implement);
 
   if (allowedPlates.length === 0) {
     return [];
@@ -1150,7 +1396,7 @@ function solveOneSidePlateCombos({ exercise, implement, perSideTargetKg, overall
   const maxByPlate = allowedPlates.map((plate) => Math.floor(Number(plate.qty || 0) / overallSides));
   const results = [];
   const counts = new Array(allowedPlates.length).fill(0);
-  const maxThickness = implement ? Number(implement.sleeveLengthPerSideCm || 0) : Infinity;
+  const maxThickness = getEffectiveImplementSleeveLengthPerSideCm(implement);
 
   function backtrack(index, currentWeight, currentThickness) {
     if (implement && currentThickness - maxThickness > 1e-9) {
@@ -1207,6 +1453,118 @@ function solveOneSidePlateCombos({ exercise, implement, perSideTargetKg, overall
   return results;
 }
 
+function solveIndependentSingleDbPlateCombos({ exercise, implement, totalTargetKg, toleranceTotal }) {
+  const allowedPlates = getAllowedPlatesForLoad(exercise, implement);
+  if (allowedPlates.length === 0) {
+    return [];
+  }
+
+  const leftCounts = new Array(allowedPlates.length).fill(0);
+  const rightCounts = new Array(allowedPlates.length).fill(0);
+  const results = [];
+  const maxThickness = getEffectiveImplementSleeveLengthPerSideCm(implement);
+
+  function backtrack(index, currentWeight, leftThickness, rightThickness) {
+    if (leftThickness - maxThickness > 1e-9 || rightThickness - maxThickness > 1e-9) {
+      return;
+    }
+    if (currentWeight - totalTargetKg > toleranceTotal + 1e-9) {
+      return;
+    }
+
+    if (index === allowedPlates.length) {
+      const diff = Math.abs(currentWeight - totalTargetKg);
+      if (diff > toleranceTotal + 1e-9) {
+        return;
+      }
+
+      const sideLayouts = [[], []];
+      let maxDiameter = 0;
+      let uses10kgDb = 0;
+      let uses10kgDb267 = 0;
+
+      for (let i = 0; i < allowedPlates.length; i += 1) {
+        const plate = allowedPlates[i];
+        if (leftCounts[i] > 0) {
+          sideLayouts[0].push({
+            id: plate.id,
+            weightKg: Number(plate.weightKg),
+            qty: leftCounts[i],
+            diameterCm: Number(plate.diameterCm)
+          });
+        }
+        if (rightCounts[i] > 0) {
+          sideLayouts[1].push({
+            id: plate.id,
+            weightKg: Number(plate.weightKg),
+            qty: rightCounts[i],
+            diameterCm: Number(plate.diameterCm)
+          });
+        }
+        if (leftCounts[i] > 0 || rightCounts[i] > 0) {
+          maxDiameter = Math.max(maxDiameter, Number(plate.diameterCm) || 0);
+          if (Math.abs(Number(plate.weightKg) - 10) < 0.0001) {
+            uses10kgDb = 1;
+            if (Math.abs(Number(plate.diameterCm) - 26.7) < 0.25) {
+              uses10kgDb267 = 1;
+            }
+          }
+        }
+      }
+
+      const leftWeight = sumPlateWeight(sideLayouts[0]);
+      const rightWeight = sumPlateWeight(sideLayouts[1]);
+      const totalPlateCount = sideLayouts.reduce((sum, side) => {
+        return sum + side.reduce((sideSum, plate) => sideSum + Number(plate.qty || 0), 0);
+      }, 0);
+
+      results.push({
+        sideLayouts,
+        totalWeightKg: currentWeight,
+        totalPlateCount,
+        maxDiameterUsed: maxDiameter,
+        uses10kgDbPlate: uses10kgDb,
+        uses10kgDb26_7: uses10kgDb267,
+        absDiffKg: diff,
+        balanceDiffKg: Math.abs(leftWeight - rightWeight)
+      });
+      return;
+    }
+
+    const plate = allowedPlates[index];
+    const plateWeight = Number(plate.weightKg || 0);
+    const plateThickness = Number(plate.thicknessCm || 0);
+    const maxQty = Number(plate.qty || 0);
+
+    for (let leftQty = 0; leftQty <= maxQty; leftQty += 1) {
+      const nextLeftThickness = leftThickness + (leftQty * plateThickness);
+      if (nextLeftThickness - maxThickness > 1e-9) {
+        break;
+      }
+      for (let rightQty = 0; rightQty <= (maxQty - leftQty); rightQty += 1) {
+        const nextRightThickness = rightThickness + (rightQty * plateThickness);
+        if (nextRightThickness - maxThickness > 1e-9) {
+          break;
+        }
+        leftCounts[index] = leftQty;
+        rightCounts[index] = rightQty;
+        backtrack(
+          index + 1,
+          currentWeight + ((leftQty + rightQty) * plateWeight),
+          nextLeftThickness,
+          nextRightThickness
+        );
+      }
+    }
+
+    leftCounts[index] = 0;
+    rightCounts[index] = 0;
+  }
+
+  backtrack(0, 0, 0, 0);
+  return results;
+}
+
 function getImplementOptionsForWeightExercise(exercise) {
   const all = state.gear.implements || [];
   const excluded = new Set(exercise.excludeImplementIds || []);
@@ -1233,20 +1591,128 @@ function isPlasticDumbbell(implementId) {
   return PLASTIC_DUMBBELL_IDS.has(implementId);
 }
 
-function buildWeightSetupSignature(implementId, perSidePlates) {
-  const parts = perSidePlates
-    .map((plate) => `${plate.id}x${plate.qty}`)
-    .sort((a, b) => a.localeCompare(b))
-    .join("|");
-  return `${implementId}|${parts}`;
+function allowsIndependentDbSides(exercise) {
+  if (exercise?.kind !== "db" || Number(exercise?.dbCount || 0) !== 1) {
+    return false;
+  }
+  return /side lunge/i.test(String(exercise?.name || ""))
+    || /side_lunge/i.test(String(exercise?.id || ""));
 }
 
-function buildDbReuseSignature(implementId, perSidePlates) {
-  const parts = perSidePlates
+function getEffectiveImplementSleeveDiameterCm(implement) {
+  if (!implement) {
+    return 0;
+  }
+  const declared = Number(implement.sleeveDiameterCm || 0);
+  if (implement.id === "bar_barbell" || implement.id === "bar_curl_bar") {
+    return Math.max(declared, 2.8);
+  }
+  return declared;
+}
+
+function getEffectiveImplementSleeveLengthPerSideCm(implement) {
+  if (!implement) {
+    return Infinity;
+  }
+  const declared = Number(implement.sleeveLengthPerSideCm || 0);
+  if (implement.id === "bar_barbell") {
+    return Math.max(declared, 22);
+  }
+  return declared;
+}
+
+function plateFitsImplement(plate, implement) {
+  if (!implement) {
+    return true;
+  }
+  return Number(plate.boreCm || 0) >= getEffectiveImplementSleeveDiameterCm(implement);
+}
+
+function getAllowedPlatesForLoad(exercise, implement) {
+  return (state.gear.plates || []).filter((plate) => {
+    if (exercise.maxPlateDiameterCm && Number(plate.diameterCm) > Number(exercise.maxPlateDiameterCm)) {
+      return false;
+    }
+    return plateFitsImplement(plate, implement);
+  });
+}
+
+function sortPlateEntriesForDisplay(plates) {
+  return [...(plates || [])].sort((a, b) => {
+    if (Number(b.weightKg) !== Number(a.weightKg)) {
+      return Number(b.weightKg) - Number(a.weightKg);
+    }
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+
+function formatPlateListForDisplay(plates) {
+  const expanded = [];
+  for (const plate of sortPlateEntriesForDisplay(plates)) {
+    for (let i = 0; i < Number(plate.qty || 0); i += 1) {
+      expanded.push(String(plate.weightKg));
+    }
+  }
+  return expanded.length > 0 ? expanded.join(" + ") : "none";
+}
+
+function sumPlateWeight(plates) {
+  return (plates || []).reduce((sum, plate) => {
+    return sum + (Number(plate.weightKg || 0) * Number(plate.qty || 0));
+  }, 0);
+}
+
+function buildUsageFromSideLayouts(sideLayouts, multiplier = 1) {
+  const usage = {};
+  for (const side of sideLayouts || []) {
+    for (const plate of side || []) {
+      usage[plate.id] = (usage[plate.id] || 0) + (Number(plate.qty || 0) * Number(multiplier || 1));
+    }
+  }
+  return usage;
+}
+
+function getSetupSideLayouts(setup) {
+  if (Array.isArray(setup?.sideLayouts) && setup.sideLayouts.length > 0) {
+    return setup.sideLayouts;
+  }
+  const perSide = setup?.perSidePlates || [];
+  return [perSide, perSide];
+}
+
+function areSideLayoutsIdentical(sideLayouts) {
+  if (!Array.isArray(sideLayouts) || sideLayouts.length < 2) {
+    return true;
+  }
+  const serialized = sideLayouts.map((side) => sortPlateEntriesForDisplay(side)
     .map((plate) => `${plate.id}x${plate.qty}`)
-    .sort((a, b) => a.localeCompare(b))
-    .join("|");
-  return `${implementId}|${parts}`;
+    .join("|"));
+  return serialized.every((value) => value === serialized[0]);
+}
+
+function buildSideLayoutSignature(sideLayouts) {
+  return (sideLayouts || [])
+    .map((side, index) => {
+      const part = sortPlateEntriesForDisplay(side)
+        .map((plate) => `${plate.id}x${plate.qty}`)
+        .join("|");
+      return `s${index}:${part}`;
+    })
+    .join("||");
+}
+
+function buildWeightSetupSignature(implementId, perSidePlates, sideLayouts = null) {
+  const normalizedSideLayouts = Array.isArray(sideLayouts) && sideLayouts.length > 0
+    ? sideLayouts
+    : [perSidePlates || [], perSidePlates || []];
+  return `${implementId}|${buildSideLayoutSignature(normalizedSideLayouts)}`;
+}
+
+function buildDbReuseSignature(implementId, perSidePlates, sideLayouts = null) {
+  const normalizedSideLayouts = Array.isArray(sideLayouts) && sideLayouts.length > 0
+    ? sideLayouts
+    : [perSidePlates || [], perSidePlates || []];
+  return `${implementId}|${buildSideLayoutSignature(normalizedSideLayouts)}`;
 }
 
 function buildPlasticDbReuseSignature(implementId, perSidePlates) {
@@ -1258,24 +1724,18 @@ function buildPlasticDbReuseSignature(implementId, perSidePlates) {
 }
 
 function formatWeightSetupMain(setup) {
-  const orderedPerSide = [...setup.perSidePlates].sort((a, b) => {
-    if (Number(b.weightKg) !== Number(a.weightKg)) {
-      return Number(b.weightKg) - Number(a.weightKg);
-    }
-    return String(a.id).localeCompare(String(b.id));
-  });
-  const expanded = [];
-  for (const plate of orderedPerSide) {
-    for (let i = 0; i < plate.qty; i += 1) {
-      expanded.push(String(plate.weightKg));
-    }
-  }
-  const perSide = expanded.length > 0 ? expanded.join(" + ") : "none";
+  const sideLayouts = getSetupSideLayouts(setup);
+  const leftSide = formatPlateListForDisplay(sideLayouts[0] || []);
+  const rightSide = formatPlateListForDisplay(sideLayouts[1] || []);
+  const hasIndependentSides = Boolean(setup.displayIndependentSides) || !areSideLayoutsIdentical(sideLayouts);
   if (setup.kind === "db") {
     const platesPerDb = Number(setup.adjustedPlatesPerDBKg || 0);
-    return `${setup.implementLabel} - each side: ${perSide} - plates per DB: ${platesPerDb.toFixed(1)}kg`;
+    if (hasIndependentSides) {
+      return `${setup.implementLabel} - left: ${leftSide} - right: ${rightSide} - plates per DB: ${platesPerDb.toFixed(1)}kg`;
+    }
+    return `${setup.implementLabel} - each side: ${leftSide} - plates per DB: ${platesPerDb.toFixed(1)}kg`;
   }
-  return `${setup.implementLabel} - each side: ${perSide}`;
+  return `${setup.implementLabel} - each side: ${leftSide}`;
 }
 
 function isWeightCandidateBetter(a, b) {
@@ -1345,7 +1805,7 @@ function buildWeightDetailsSection(exercise, targetPlatesOnlyKg, chosenSetup, da
     rows.push(`Reserved dumbbells for this implement in current day: ${reservedForImplement} / ${availableForImplement}`);
     rows.push(`Reserved by implement map: ${reservedByImplementMapJson}`);
     rows.push(`Chosen day DB groups for this implement: ${chosenDbGroupsForImplement}`);
-    rows.push(`Day plan feasible: ${dayPlanFeasible}`);
+    rows.push(`Legacy simultaneous-feasibility check: ${dayPlanFeasible}`);
     rows.push(`Final chosen weight candidates count: ${finalChosenCount}`);
     rows.push("Exact-only DB filter bypass: yes");
     const candidatesForExercise = dayWeightPlan?.candidatesByExercise?.get(exercise.id) || [];
@@ -1411,6 +1871,7 @@ function solveDayWeightPlan(dayExercises) {
   const chosenByExercise = new Map();
   const pinUnavailableByExercise = new Set();
   let transferPlanByExerciseId = {};
+  let reloadPlanByExerciseId = {};
 
   if (weightExercises.length === 0) {
     return {
@@ -1426,6 +1887,7 @@ function solveDayWeightPlan(dayExercises) {
         reusableGroupKeysByExerciseId: {}
       },
       transferPlanByExerciseId,
+      reloadPlanByExerciseId,
       weightPlanFeasible: true,
       strictPinsSatisfied: true
     };
@@ -1507,9 +1969,6 @@ function solveDayWeightPlan(dayExercises) {
     if (chosen) {
       finalizedChosen.set(task.exercise.id, chosen);
     }
-    if (task.pinnedSignature && (!chosen || chosen.signature !== task.pinnedSignature)) {
-      pinUnavailableByExercise.add(task.exercise.id);
-    }
   }
   chosenByExercise.clear();
   for (const [exerciseId, candidate] of finalizedChosen.entries()) {
@@ -1519,12 +1978,14 @@ function solveDayWeightPlan(dayExercises) {
   let finalChosenWeightCandidates = Array.from(finalizedChosen.entries())
     .map(([exerciseId, candidate]) => ({ exerciseId, candidate }));
   let feasibility = isWeightPlanFeasible(finalChosenWeightCandidates, state.gear, true);
+  const barbellExerciseCount = weightExercises.filter((exercise) => isBarbellCandidateKind(exercise.kind)).length;
 
-  if (finalizedChosen.size < weightExercises.length || !feasibility.feasible) {
+  if (barbellExerciseCount > 0 || finalizedChosen.size < weightExercises.length || !feasibility.feasible) {
     const rescue = solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExercise, finalizedChosen);
-    if (rescue.chosenByExercise.size > finalizedChosen.size) {
+    if (rescue.chosenByExercise.size >= finalizedChosen.size && rescue.chosenByExercise.size > 0) {
       finalizedChosen = rescue.chosenByExercise;
       transferPlanByExerciseId = rescue.transferPlanByExerciseId || {};
+      reloadPlanByExerciseId = rescue.reloadPlanByExerciseId || {};
       chosenByExercise.clear();
       for (const [exerciseId, candidate] of finalizedChosen.entries()) {
         chosenByExercise.set(exerciseId, candidate);
@@ -1532,6 +1993,14 @@ function solveDayWeightPlan(dayExercises) {
       finalChosenWeightCandidates = Array.from(finalizedChosen.entries())
         .map(([exerciseId, candidate]) => ({ exerciseId, candidate }));
       feasibility = isWeightPlanFeasible(finalChosenWeightCandidates, state.gear, true);
+    }
+  }
+
+  pinUnavailableByExercise.clear();
+  for (const task of tasks) {
+    const chosen = finalizedChosen.get(task.exercise.id) || null;
+    if (task.pinnedSignature && (!chosen || chosen.signature !== task.pinnedSignature)) {
+      pinUnavailableByExercise.add(task.exercise.id);
     }
   }
 
@@ -1545,10 +2014,11 @@ function solveDayWeightPlan(dayExercises) {
     finalChosenWeightCandidates,
     sharedDbStats,
     transferPlanByExerciseId,
+    reloadPlanByExerciseId,
     weightPlanFeasible: Boolean(feasibility.feasible),
     feasibility,
     timedOut: solved.timedOut,
-    strictPinsSatisfied: Boolean(strictPass.best)
+    strictPinsSatisfied: pinUnavailableByExercise.size === 0
   };
 }
 
@@ -1717,8 +2187,12 @@ function computeSharedDayDbStats(finalChosenWeightCandidates) {
       continue;
     }
     const implementId = candidate.implementId;
-    const groupKey = buildDbReuseSignature(implementId, candidate.perSidePlates || []);
-    const dbCount = Math.max(1, Number(candidate.dbCount || 1));
+    const groupKey = candidate.reuseKey || buildDbReuseSignature(
+      implementId,
+      candidate.perSidePlates || [],
+      candidate.sideLayouts || null
+    );
+    const dbCount = Math.max(1, Number(candidate.reuseUnitsNeeded || candidate.dbCount || 1));
     if (exerciseId) {
       reusableGroupKeysByExerciseId[exerciseId] = groupKey;
     }
@@ -1727,7 +2201,9 @@ function computeSharedDayDbStats(finalChosenWeightCandidates) {
         key: groupKey,
         implementId,
         maxDbCount: 0,
-        perSideUsage: candidate.perSideUsage || buildWeightUsageMap(candidate.perSidePlates || [], 1)
+        reuseUnitUsage: candidate.reuseUnitUsage
+          || candidate.perSideUsage
+          || buildWeightUsageMap(candidate.perSidePlates || [], 2)
       };
     }
     groupsByKey[groupKey].maxDbCount = Math.max(Number(groupsByKey[groupKey].maxDbCount || 0), dbCount);
@@ -1787,10 +2263,10 @@ function isWeightPlanFeasible(chosenWeightPlan, gear, debug = false) {
   }
 
   for (const group of Object.values(dbGroupsByKey)) {
-    const perSideUsage = group.perSideUsage || {};
-    const totalSides = 2 * Number(group.maxDbCount || 0);
-    for (const [plateId, qtyPerSide] of Object.entries(perSideUsage)) {
-      reservedPlatesById[plateId] = Number(reservedPlatesById[plateId] || 0) + (Number(qtyPerSide || 0) * totalSides);
+    const reuseUnitUsage = group.reuseUnitUsage || {};
+    const totalUnits = Number(group.maxDbCount || 0);
+    for (const [plateId, qtyPerUnit] of Object.entries(reuseUnitUsage)) {
+      reservedPlatesById[plateId] = Number(reservedPlatesById[plateId] || 0) + (Number(qtyPerUnit || 0) * totalUnits);
       if (reservedPlatesById[plateId] > Number(plateQtyById[plateId] || 0)) {
         if (!debug) return false;
         return {
@@ -2751,4 +3227,3 @@ function formatComboPart(part, withSystemPrefix) {
   const prefix = part.system === "handled" ? "Handle" : "Loop";
   return `${prefix} ${part.label} x${part.qty}`;
 }
-
