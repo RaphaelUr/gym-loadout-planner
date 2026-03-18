@@ -510,6 +510,13 @@ function findPlateById(plateId) {
   return (state.gear.plates || []).find((plate) => plate.id === plateId) || null;
 }
 
+function findImplementById(implementId) {
+  if (!implementId) {
+    return null;
+  }
+  return (state.gear.implements || []).find((item) => item.id === implementId) || null;
+}
+
 function buildBarbellReloadPlan(previousCandidate, nextCandidate, fromExerciseName = "") {
   if (!previousCandidate || !nextCandidate) {
     return null;
@@ -653,7 +660,7 @@ function areTransferDeficitsSatisfied(deficitPairs) {
   return Object.values(deficitPairs || {}).every((qty) => Number(qty || 0) <= 0);
 }
 
-function getUsefulPrefixLengthsForDonorQueue(queue, deficitPairs) {
+function getUsefulPrefixLengthsForDonorQueue(queue, deficitPairs, recipientImplement) {
   const options = new Set();
   const remainingNeededById = {};
   for (const [plateId, qty] of Object.entries(deficitPairs || {})) {
@@ -667,9 +674,16 @@ function getUsefulPrefixLengthsForDonorQueue(queue, deficitPairs) {
 
   for (let len = 1; len <= (queue?.length || 0); len += 1) {
     const item = queue[len - 1];
-    if (remainingNeededById[item?.plateId] > 0) {
-      options.add(len);
+    const plate = findPlateById(item?.plateId);
+    if (!plateFitsImplement(plate, recipientImplement)) {
+      break;
     }
+    if (remainingNeededById[item?.plateId] > 0) {
+      remainingNeededById[item.plateId] -= 1;
+      options.add(len);
+      continue;
+    }
+    break;
   }
 
   return Array.from(options).sort((a, b) => a - b);
@@ -681,6 +695,7 @@ function attemptMinimalTransferRescueForCandidate({
   inventory,
   donorStates
 }) {
+  const recipientImplement = findImplementById(candidate?.implementId);
   const deficitPairs = getMinimalTransferDeficitPairs(candidate, usage, inventory);
   if (Object.keys(deficitPairs).length === 0) {
     return {
@@ -749,7 +764,7 @@ function attemptMinimalTransferRescueForCandidate({
     );
 
     const donorQueue = donorQueues[queueIdx];
-    const usefulPrefixLengths = getUsefulPrefixLengthsForDonorQueue(donorQueue.queue, remainingDeficitPairs);
+    const usefulPrefixLengths = getUsefulPrefixLengthsForDonorQueue(donorQueue.queue, remainingDeficitPairs, recipientImplement);
     for (const prefixLen of usefulPrefixLengths) {
       const nextRemaining = { ...remainingDeficitPairs };
       const nextRawSteps = rawSteps.slice();
