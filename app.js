@@ -475,7 +475,7 @@ function cloneDonorStates(donorStates) {
 function mergeTransferSteps(rawSteps) {
   const byKey = new Map();
   for (const step of rawSteps) {
-    const key = `${step.donorExerciseId}|${step.plateId}`;
+    const key = `${step.donorExerciseId}|${step.plateId}|${step.usedForRecipient ? "use" : "clear"}`;
     if (!byKey.has(key)) {
       byKey.set(key, { ...step });
     } else {
@@ -675,15 +675,10 @@ function getUsefulPrefixLengthsForDonorQueue(queue, deficitPairs, recipientImple
   for (let len = 1; len <= (queue?.length || 0); len += 1) {
     const item = queue[len - 1];
     const plate = findPlateById(item?.plateId);
-    if (!plateFitsImplement(plate, recipientImplement)) {
-      break;
-    }
-    if (remainingNeededById[item?.plateId] > 0) {
+    if (plateFitsImplement(plate, recipientImplement) && remainingNeededById[item?.plateId] > 0) {
       remainingNeededById[item.plateId] -= 1;
       options.add(len);
-      continue;
     }
-    break;
   }
 
   return Array.from(options).sort((a, b) => a - b);
@@ -778,7 +773,9 @@ function attemptMinimalTransferRescueForCandidate({
 
       for (let i = 0; i < prefixLen; i += 1) {
         const removed = donorQueue.queue[i];
-        if (nextRemaining[removed.plateId] > 0) {
+        const removedPlate = findPlateById(removed.plateId);
+        const usedForRecipient = plateFitsImplement(removedPlate, recipientImplement) && nextRemaining[removed.plateId] > 0;
+        if (usedForRecipient) {
           nextRemaining[removed.plateId] -= 1;
         }
         nextRawSteps.push({
@@ -787,7 +784,8 @@ function attemptMinimalTransferRescueForCandidate({
           plateId: removed.plateId,
           plateWeightKg: Number(removed.plateWeightKg || 0),
           pairCount: 1,
-          queueIndex: donorQueue.queueIndex
+          queueIndex: donorQueue.queueIndex,
+          usedForRecipient
         });
         nextTotalPairsMoved += 1;
         nextTotalMovedMassKg += Number(removed.plateWeightKg || 0);
@@ -832,7 +830,8 @@ function attemptMinimalTransferRescueForCandidate({
     plateId: step.plateId,
     plateWeightKg: step.plateWeightKg,
     pairCount: step.pairCount,
-    donorDumbbellsTouched: 1
+    donorDumbbellsTouched: 1,
+    usedForRecipient: step.usedForRecipient
   })));
 
   return {
@@ -1172,7 +1171,9 @@ function buildWeightSetupUi(exercise, targetKg, dayWeightPlan, dayExercises) {
     for (const step of transferSteps) {
       const line = document.createElement("p");
       line.className = "weight-setup-meta";
-      line.textContent = `- From ${step.donorExerciseName}: move outer ${Number(step.plateWeightKg || 0)}kg pair x${Number(step.pairCount || 0)}`;
+      line.textContent = step.usedForRecipient
+        ? `- From ${step.donorExerciseName}: move outer ${Number(step.plateWeightKg || 0)}kg pair x${Number(step.pairCount || 0)}`
+        : `- From ${step.donorExerciseName}: remove outer ${Number(step.plateWeightKg || 0)}kg pair x${Number(step.pairCount || 0)} to access inner plates`;
       wrapper.append(line);
     }
   }
