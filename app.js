@@ -1163,17 +1163,16 @@ function buildWeightSetupUi(exercise, targetKg, dayWeightPlan, dayExercises) {
   }
 
   const transferSteps = dayWeightPlan?.transferPlanByExerciseId?.[exercise.id] || [];
-  if (transferSteps.length > 0) {
+  const usableTransferSteps = transferSteps.filter((step) => step.usedForRecipient);
+  if (usableTransferSteps.length > 0) {
     const notice = document.createElement("p");
     notice.className = "weight-setup-meta";
     notice.textContent = "Minimal transfer required from earlier setups.";
     wrapper.append(notice);
-    for (const step of transferSteps) {
+    for (const step of usableTransferSteps) {
       const line = document.createElement("p");
       line.className = "weight-setup-meta";
-      line.textContent = step.usedForRecipient
-        ? `- From ${step.donorExerciseName}: move outer ${Number(step.plateWeightKg || 0)}kg pair x${Number(step.pairCount || 0)}`
-        : `- From ${step.donorExerciseName}: remove outer ${Number(step.plateWeightKg || 0)}kg pair x${Number(step.pairCount || 0)} to access inner plates`;
+      line.textContent = `- From ${step.donorExerciseName}: move ${Number(step.plateWeightKg || 0)}kg pair x${Number(step.pairCount || 0)}`;
       wrapper.append(line);
     }
   }
