@@ -370,6 +370,52 @@ function getWholeDayFeasibleWeightAlternatives({ exercise, chosen, chosenDisplay
   return alternatives;
 }
 
+function populateWholeDayFeasibleWeightAlternatives(details, {
+  exercise,
+  chosen,
+  chosenDisplayText,
+  candidates,
+  dayExercises
+}) {
+  if (!details || details.dataset.loaded === "yes") {
+    return;
+  }
+  details.dataset.loaded = "yes";
+
+  const alternatives = getWholeDayFeasibleWeightAlternatives({
+    exercise,
+    chosen,
+    chosenDisplayText,
+    candidates,
+    dayExercises
+  });
+
+  if (alternatives.length === 0) {
+    const noAlt = document.createElement("p");
+    noAlt.className = "band-setup-empty";
+    noAlt.textContent = "No other feasible alternatives.";
+    details.append(noAlt);
+    return;
+  }
+
+  alternatives.forEach((candidate, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "alternative-option";
+    btn.dataset.signature = candidate.signature;
+    btn.textContent = `Option #${idx + 2}: ${formatWeightSetupMain(candidate)}`;
+    btn.addEventListener("click", (event) => {
+      const signature = event.currentTarget?.dataset?.signature || "";
+      if (!signature) {
+        return;
+      }
+      saveWeightChosenSetup(exercise.id, signature);
+      render();
+    });
+    details.append(btn);
+  });
+}
+
 function isForcedWeightCandidateWholeDayFeasible(exerciseId, candidateSignature, dayExercises) {
   const prevPinned = state.weightChosenSetup[exerciseId];
   if (candidateSignature) {
@@ -880,10 +926,14 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
 
     if (exercise.kind === "db" || exercise.kind === "plateOnly") {
       const laterBarbellPressure = buildLaterBarbellPlatePressure(weightExercises, candidatesByExercise, index);
+      const feasibleOrdered = ordered.filter((candidate) => isWeightPlanFeasible([
+        ...persistentEntries,
+        { exerciseId: exercise.id, candidate }
+      ], state.gear));
       let chosen = null;
 
       if (Object.keys(laterBarbellPressure).length > 0) {
-        const candidateWindow = ordered.slice(0, Math.min(8, ordered.length));
+        const candidateWindow = feasibleOrdered.slice(0, Math.min(8, feasibleOrdered.length));
         for (const candidate of candidateWindow) {
           if (!chosen) {
             chosen = candidate;
@@ -916,7 +966,15 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
       }
 
       if (!chosen) {
-        chosen = strictPersistentChosen.get(exercise.id) || ordered[0] || null;
+        const strictChosen = strictPersistentChosen.get(exercise.id) || null;
+        if (strictChosen && isWeightPlanFeasible([
+          ...persistentEntries,
+          { exerciseId: exercise.id, candidate: strictChosen }
+        ], state.gear)) {
+          chosen = strictChosen;
+        } else {
+          chosen = feasibleOrdered[0] || null;
+        }
       }
       if (!chosen) {
         continue;
@@ -1189,35 +1247,24 @@ function buildWeightSetupUi(exercise, targetKg, dayWeightPlan, dayExercises) {
     wrapper.append(hint);
   }
 
-  const alternatives = getWholeDayFeasibleWeightAlternatives({
-    exercise,
-    chosen,
-    chosenDisplayText,
-    candidates,
-    dayExercises
-  });
-  if (alternatives.length > 0) {
+  const hasAlternativeCandidates = candidates.some((candidate) => candidate?.signature && candidate.signature !== chosen.signature);
+  if (hasAlternativeCandidates) {
     const details = document.createElement("details");
     details.className = "alternatives";
     const summary = document.createElement("summary");
     summary.textContent = "Alternatives";
     details.append(summary);
-
-    alternatives.forEach((candidate, idx) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "alternative-option";
-      btn.dataset.signature = candidate.signature;
-      btn.textContent = `Option #${idx + 2}: ${formatWeightSetupMain(candidate)}`;
-      btn.addEventListener("click", (event) => {
-        const signature = event.currentTarget?.dataset?.signature || "";
-        if (!signature) {
-          return;
-        }
-        saveWeightChosenSetup(exercise.id, signature);
-        render();
+    details.addEventListener("toggle", () => {
+      if (!details.open) {
+        return;
+      }
+      populateWholeDayFeasibleWeightAlternatives(details, {
+        exercise,
+        chosen,
+        chosenDisplayText,
+        candidates,
+        dayExercises
       });
-      details.append(btn);
     });
     wrapper.append(details);
   } else {
@@ -1408,13 +1455,31 @@ function solveOneSidePlateCombos({ exercise, implement, perSideTargetKg, overall
     return [];
   }
 
-  const maxByPlate = allowedPlates.map((plate) => Math.floor(Number(plate.qty || 0) / overallSides));
+  const maxByPlate = allowedPlates.map((plate) => {
+    const maxByInventory = Math.floor(Number(plate.qty || 0) / overallSides);
+    const plateWeight = Number(plate.weightKg || 0);
+    const maxByTarget = plateWeight > 0
+      ? Math.floor((perSideTargetKg + tolerancePerSide + 1e-9) / plateWeight)
+      : maxByInventory;
+    return Math.max(0, Math.min(maxByInventory, maxByTarget));
+  });
   const results = [];
   const counts = new Array(allowedPlates.length).fill(0);
   const maxThickness = getEffectiveImplementSleeveLengthPerSideCm(implement);
+  const maxRemainingWeightFromIndex = new Array(allowedPlates.length + 1).fill(0);
+  for (let i = allowedPlates.length - 1; i >= 0; i -= 1) {
+    maxRemainingWeightFromIndex[i] = maxRemainingWeightFromIndex[i + 1]
+      + (maxByPlate[i] * Number(allowedPlates[i].weightKg || 0));
+  }
 
   function backtrack(index, currentWeight, currentThickness) {
     if (implement && currentThickness - maxThickness > 1e-9) {
+      return;
+    }
+    if (currentWeight - (perSideTargetKg + tolerancePerSide) > 1e-9) {
+      return;
+    }
+    if (currentWeight + Number(maxRemainingWeightFromIndex[index] || 0) < (perSideTargetKg - tolerancePerSide) - 1e-9) {
       return;
     }
     if (index === allowedPlates.length) {
