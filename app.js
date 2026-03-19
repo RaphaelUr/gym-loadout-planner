@@ -454,10 +454,11 @@ function getOrderedWeightCandidatesForExercise(exercise, candidates) {
 function buildUsageFromChosenInDayOrder(weightExercises, chosenByExercise) {
   const usage = {};
   const reusablePlasticDbState = {};
+  const plateOnlyReuseState = {};
   for (const exercise of weightExercises) {
     const candidate = chosenByExercise.get(exercise.id);
     if (!candidate) continue;
-    applyWeightCandidateUsage(candidate, usage, +1, reusablePlasticDbState);
+    applyWeightCandidateUsage(candidate, usage, +1, reusablePlasticDbState, null, plateOnlyReuseState);
   }
   return usage;
 }
@@ -918,6 +919,7 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
   const usage = {};
   let donorStates = {};
   let previousBarbellChoice = null;
+  const plateOnlyReuseState = {};
 
   for (let index = 0; index < weightExercises.length; index += 1) {
     const exercise = weightExercises[index];
@@ -981,7 +983,7 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
       }
       chosenByExercise.set(exercise.id, chosen);
       persistentEntries.push({ exerciseId: exercise.id, candidate: chosen });
-      applyWeightCandidateUsage(chosen, usage, +1, null, null);
+      applyWeightCandidateUsage(chosen, usage, +1, null, null, plateOnlyReuseState);
       if (chosen.kind === "db") {
         const donor = buildDonorStateFromDbCandidate(exercise, chosen);
         if (donor) {
@@ -1404,7 +1406,7 @@ function solveWeightExercise(exercise, targetKg, maxResults = 4) {
         baseImplementEmptyWeightKg: plan.baseImplement?.emptyWeightKg ?? null
       };
       setup.softPenalty = (setup.dbLongRedPenalty * 100)
-        + (setup.uses10kgDbPlate * 30)
+        + (setup.uses10kgDbPlate * 180)
         - (setup.uses10kgDb26_7 * 5)
         + (setup.baseMismatchPenalty * 25)
         + (setup.balanceDiffKg * 0.1);
@@ -2079,6 +2081,7 @@ function solveDayWeightPlan(dayExercises) {
   if (!solved.best) {
     const usageFallback = {};
     const reusablePlasticDbState = {};
+    const plateOnlyReuseState = {};
     const implementUsageState = {
       reservedByImplement: {},
       reuseGroups: {}
@@ -2091,7 +2094,8 @@ function solveDayWeightPlan(dayExercises) {
         inventory,
         reusablePlasticDbState,
         implementQtyById,
-        implementUsageState
+        implementUsageState,
+        plateOnlyReuseState
       ) && isWeightPlanFeasible([
         ...fallbackChosenWeightPlan,
         { exerciseId: task.exercise.id, candidate }
@@ -2110,7 +2114,8 @@ function solveDayWeightPlan(dayExercises) {
         usageFallback,
         +1,
         reusablePlasticDbState,
-        implementUsageState
+        implementUsageState,
+        plateOnlyReuseState
       );
       fallbackChosenWeightPlan.push({ exerciseId: task.exercise.id, candidate: fallback });
       chosenByExercise.set(task.exercise.id, fallback);
@@ -2191,6 +2196,7 @@ function runDayWeightSolvePass(tasks, inventory, implementQtyById, requirePinned
   const orderedTasks = [...tasks].sort((a, b) => a.candidates.length - b.candidates.length);
   const usage = {};
   const reusablePlasticDbState = {};
+  const plateOnlyReuseState = {};
   const implementUsageState = {
     reservedByImplement: {},
     reuseGroups: {}
@@ -2271,7 +2277,8 @@ function runDayWeightSolvePass(tasks, inventory, implementQtyById, requirePinned
         inventory,
         reusablePlasticDbState,
         implementQtyById,
-        implementUsageState
+        implementUsageState,
+        plateOnlyReuseState
       )) {
         continue;
       }
@@ -2280,7 +2287,8 @@ function runDayWeightSolvePass(tasks, inventory, implementQtyById, requirePinned
         usage,
         +1,
         reusablePlasticDbState,
-        implementUsageState
+        implementUsageState,
+        plateOnlyReuseState
       );
       current.set(task.exercise.id, candidate);
 
@@ -2293,7 +2301,8 @@ function runDayWeightSolvePass(tasks, inventory, implementQtyById, requirePinned
           usage,
           -1,
           reusablePlasticDbState,
-          implementUsageState
+          implementUsageState,
+          plateOnlyReuseState
         );
         continue;
       }
@@ -2310,7 +2319,8 @@ function runDayWeightSolvePass(tasks, inventory, implementQtyById, requirePinned
         usage,
         -1,
         reusablePlasticDbState,
-        implementUsageState
+        implementUsageState,
+        plateOnlyReuseState
       );
       if (timedOut) {
         break;
@@ -2407,6 +2417,7 @@ function isWeightPlanFeasible(chosenWeightPlan, gear, debug = false) {
     .map((entry) => entry?.candidate || null)
     .filter((candidate) => Boolean(candidate));
   const reservedPlatesById = {};
+  const reservedPlateOnlyById = {};
   const sharedDbStats = computeSharedDayDbStats(chosenWeightPlan || []);
   const reservedDumbbellsByImplementId = sharedDbStats.reservedByImplementId;
   const dbGroupCountByImplementId = sharedDbStats.groupCountByImplementId;
@@ -2451,6 +2462,15 @@ function isWeightPlanFeasible(chosenWeightPlan, gear, debug = false) {
     if (!candidate || candidate.kind === "db") {
       continue;
     }
+    if (candidate.kind === "plateOnly") {
+      for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
+        reservedPlateOnlyById[plateId] = Math.max(
+          Number(reservedPlateOnlyById[plateId] || 0),
+          Number(qty || 0)
+        );
+      }
+      continue;
+    }
     for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
       reservedPlatesById[plateId] = Number(reservedPlatesById[plateId] || 0) + Number(qty || 0);
       if (reservedPlatesById[plateId] > Number(plateQtyById[plateId] || 0)) {
@@ -2465,6 +2485,22 @@ function isWeightPlanFeasible(chosenWeightPlan, gear, debug = false) {
           sharedDbStats
         };
       }
+    }
+  }
+
+  for (const [plateId, qty] of Object.entries(reservedPlateOnlyById)) {
+    reservedPlatesById[plateId] = Number(reservedPlatesById[plateId] || 0) + Number(qty || 0);
+    if (reservedPlatesById[plateId] > Number(plateQtyById[plateId] || 0)) {
+      if (!debug) return false;
+      return {
+        feasible: false,
+        reservedPlatesById,
+        reservedDumbbellsByImplementId,
+        plateQtyById,
+        implementQtyById,
+        dbGroupCountByImplementId,
+        sharedDbStats
+      };
     }
   }
 
@@ -2578,8 +2614,12 @@ function canApplyWeightCandidate(
   inventory,
   reusablePlasticDbState = null,
   implementQtyById = null,
-  implementUsageState = null
+  implementUsageState = null,
+  plateOnlyReuseState = null
 ) {
+  if (candidate.kind === "plateOnly") {
+    return canApplyReusablePlateOnlyCandidate(candidate, usage, inventory, plateOnlyReuseState);
+  }
   if (candidate.plasticReuseSignature) {
     return canApplyReusablePlasticDbCandidate(candidate, usage, inventory, reusablePlasticDbState);
   }
@@ -2597,8 +2637,13 @@ function applyWeightCandidateUsage(
   usage,
   direction,
   reusablePlasticDbState = null,
-  implementUsageState = null
+  implementUsageState = null,
+  plateOnlyReuseState = null
 ) {
+  if (candidate.kind === "plateOnly") {
+    applyReusablePlateOnlyCandidateUsage(candidate, usage, direction, plateOnlyReuseState);
+    return;
+  }
   if (candidate.plasticReuseSignature) {
     applyReusablePlasticDbCandidateUsage(candidate, usage, direction, reusablePlasticDbState);
     return;
@@ -2609,6 +2654,88 @@ function applyWeightCandidateUsage(
       delete usage[plateId];
     } else {
       usage[plateId] = nextQty;
+    }
+  }
+}
+
+function canApplyReusablePlateOnlyCandidate(candidate, usage, inventory, plateOnlyReuseState) {
+  if (!plateOnlyReuseState) {
+    for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
+      const nextQty = Math.max(Number(usage[plateId] || 0), Number(qty || 0));
+      if (nextQty > Number(inventory[plateId] || 0)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const currentMaxByPlate = plateOnlyReuseState.currentMaxByPlate || {};
+  for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
+    const prevMax = Number(currentMaxByPlate[plateId] || 0);
+    const nextMax = Math.max(prevMax, Number(qty || 0));
+    const delta = nextMax - prevMax;
+    const nextQty = Number(usage[plateId] || 0) + delta;
+    if (nextQty > Number(inventory[plateId] || 0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function applyReusablePlateOnlyCandidateUsage(candidate, usage, direction, plateOnlyReuseState) {
+  if (!plateOnlyReuseState) {
+    for (const [plateId, qty] of Object.entries(candidate.usage || {})) {
+      const nextQty = direction > 0
+        ? Math.max(Number(usage[plateId] || 0), Number(qty || 0))
+        : 0;
+      if (nextQty <= 0) {
+        delete usage[plateId];
+      } else {
+        usage[plateId] = nextQty;
+      }
+    }
+    return;
+  }
+
+  plateOnlyReuseState.currentMaxByPlate ||= {};
+  plateOnlyReuseState.frequenciesByPlate ||= {};
+
+  for (const [plateId, rawQty] of Object.entries(candidate.usage || {})) {
+    const qty = Number(rawQty || 0);
+    if (!plateOnlyReuseState.frequenciesByPlate[plateId]) {
+      plateOnlyReuseState.frequenciesByPlate[plateId] = {};
+    }
+    const frequencies = plateOnlyReuseState.frequenciesByPlate[plateId];
+    const prevMax = Number(plateOnlyReuseState.currentMaxByPlate[plateId] || 0);
+
+    if (direction > 0) {
+      frequencies[qty] = Number(frequencies[qty] || 0) + 1;
+    } else {
+      const currentFreq = Number(frequencies[qty] || 0);
+      if (currentFreq <= 1) {
+        delete frequencies[qty];
+      } else {
+        frequencies[qty] = currentFreq - 1;
+      }
+    }
+
+    const nextMax = Math.max(
+      0,
+      ...Object.keys(frequencies).map((value) => Number(value))
+    );
+    const delta = nextMax - prevMax;
+    const nextQty = Number(usage[plateId] || 0) + delta;
+    if (nextQty <= 0) {
+      delete usage[plateId];
+    } else {
+      usage[plateId] = nextQty;
+    }
+
+    if (nextMax <= 0) {
+      delete plateOnlyReuseState.currentMaxByPlate[plateId];
+      delete plateOnlyReuseState.frequenciesByPlate[plateId];
+    } else {
+      plateOnlyReuseState.currentMaxByPlate[plateId] = nextMax;
     }
   }
 }
