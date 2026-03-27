@@ -649,6 +649,13 @@ function compareSequentialBarbellChoices(a, b) {
   if (reloadCompare !== 0) {
     return reloadCompare;
   }
+  const futureReloadCompare = compareReloadPlans(a.futureReloadPlan, b.futureReloadPlan);
+  if (futureReloadCompare !== 0) {
+    return futureReloadCompare;
+  }
+  if (Number(a.futureBarbellSupport || 0) !== Number(b.futureBarbellSupport || 0)) {
+    return Number(b.futureBarbellSupport || 0) - Number(a.futureBarbellSupport || 0);
+  }
   if (a.candidate.absDiffKg !== b.candidate.absDiffKg) {
     return a.candidate.absDiffKg - b.candidate.absDiffKg;
   }
@@ -690,6 +697,25 @@ function getFutureBarbellOverlapPenalty(candidate, pressure) {
   return Object.entries(candidate?.usage || {}).reduce((sum, [plateId, qty]) => {
     return sum + (Number(qty || 0) * Number(pressure?.[plateId] || 0));
   }, 0);
+}
+
+function getBestFutureBarbellReloadPlan(candidate, weightExercises, candidatesByExercise, startIndex) {
+  for (let i = startIndex + 1; i < weightExercises.length; i += 1) {
+    const exercise = weightExercises[i];
+    if (!isBarbellCandidateKind(exercise?.kind)) {
+      continue;
+    }
+    const candidates = (candidatesByExercise.get(exercise.id) || []).slice(0, 8);
+    let bestPlan = null;
+    for (const nextCandidate of candidates) {
+      const reloadPlan = buildBarbellReloadPlan(candidate, nextCandidate, exercise.name || "");
+      if (compareReloadPlans(reloadPlan, bestPlan) < 0) {
+        bestPlan = reloadPlan;
+      }
+    }
+    return bestPlan;
+  }
+  return null;
 }
 
 function getMinimalTransferDeficitPairs(candidate, usage, inventory) {
@@ -997,6 +1023,7 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
       continue;
     }
 
+    const futureBarbellPressure = buildLaterBarbellPlatePressure(weightExercises, candidatesByExercise, index);
     let rescued = null;
     for (const candidate of ordered) {
       const attempt = attemptMinimalTransferRescueForCandidate({
@@ -1018,6 +1045,8 @@ function solveDayWeightPlanWithMinimalTransfer(weightExercises, candidatesByExer
         steps: attempt.steps,
         donorStates: attempt.donorStates,
         transferScore: attempt.score || emptyTransferScore(),
+        futureReloadPlan: getBestFutureBarbellReloadPlan(candidate, weightExercises, candidatesByExercise, index),
+        futureBarbellSupport: getFutureBarbellOverlapPenalty(candidate, futureBarbellPressure),
         reloadPlan
       };
       if (!rescued || compareSequentialBarbellChoices(evaluated, rescued) < 0) {
@@ -1434,7 +1463,7 @@ function solveWeightExercise(exercise, targetKg, maxResults = 4) {
     ? deduped.some((candidate) => candidate.implementId === configuredBaseDb.id)
     : false;
 
-  const ranked = deduped
+  const sorted = deduped
     .sort((a, b) => {
       if (a.absDiffKg !== b.absDiffKg) return a.absDiffKg - b.absDiffKg;
       if (hasBaseFeasible && a.baseMismatchPenalty !== b.baseMismatchPenalty) {
@@ -1444,8 +1473,39 @@ function solveWeightExercise(exercise, targetKg, maxResults = 4) {
       if (a.softPenalty !== b.softPenalty) return a.softPenalty - b.softPenalty;
       if (a.maxDiameterUsed !== b.maxDiameterUsed) return a.maxDiameterUsed - b.maxDiameterUsed;
       return a.signature.localeCompare(b.signature);
-    })
-    .slice(0, maxResults);
+    });
+
+  let ranked;
+  if (exercise.kind === "db" && maxResults > 4) {
+    const bucketsByImplement = new Map();
+    for (const candidate of sorted) {
+      const key = candidate.implementId || "unknown";
+      if (!bucketsByImplement.has(key)) {
+        bucketsByImplement.set(key, []);
+      }
+      bucketsByImplement.get(key).push(candidate);
+    }
+
+    const interleaved = [];
+    let bucketIndex = 0;
+    let addedAny = true;
+    while (interleaved.length < maxResults && addedAny) {
+      addedAny = false;
+      for (const bucket of bucketsByImplement.values()) {
+        if (bucketIndex < bucket.length) {
+          interleaved.push(bucket[bucketIndex]);
+          addedAny = true;
+          if (interleaved.length >= maxResults) {
+            break;
+          }
+        }
+      }
+      bucketIndex += 1;
+    }
+    ranked = interleaved;
+  } else {
+    ranked = sorted.slice(0, maxResults);
+  }
 
   return { candidates: ranked };
 }
@@ -1788,6 +1848,14 @@ function getEffectiveImplementSleeveLengthPerSideCm(implement) {
   return declared;
 }
 
+function getEffectiveExerciseMaxPlateDiameterCm(exercise) {
+  const declared = Number(exercise?.maxPlateDiameterCm || 0);
+  if (allowsIndependentDbSides(exercise)) {
+    return Math.max(declared || 0, 22);
+  }
+  return declared;
+}
+
 function plateFitsImplement(plate, implement) {
   if (!implement) {
     return true;
@@ -1796,8 +1864,9 @@ function plateFitsImplement(plate, implement) {
 }
 
 function getAllowedPlatesForLoad(exercise, implement) {
+  const maxPlateDiameterCm = getEffectiveExerciseMaxPlateDiameterCm(exercise);
   return (state.gear.plates || []).filter((plate) => {
-    if (exercise.maxPlateDiameterCm && Number(plate.diameterCm) > Number(exercise.maxPlateDiameterCm)) {
+    if (maxPlateDiameterCm && Number(plate.diameterCm) > Number(maxPlateDiameterCm)) {
       return false;
     }
     return plateFitsImplement(plate, implement);
@@ -2554,8 +2623,23 @@ function buildWeightCandidatesForDayExercise(exercise, targetKg, pinnedSignature
   }
 
   const merged = [];
+  const perImplementLimit = allowsIndependentDbSides(exercise) ? 10 : 4;
+  const maxPerDisplayText = allowsIndependentDbSides(exercise) ? 2 : 1;
   for (const bucket of bucketsByImplement.values()) {
-    const bestFromBucket = bucket.slice(0, 4);
+    const bestFromBucket = [];
+    const displayTextCounts = new Map();
+    for (const candidate of bucket) {
+      const displayText = formatWeightSetupMain(candidate);
+      const currentCount = Number(displayTextCounts.get(displayText) || 0);
+      if (currentCount >= maxPerDisplayText) {
+        continue;
+      }
+      displayTextCounts.set(displayText, currentCount + 1);
+      bestFromBucket.push(candidate);
+      if (bestFromBucket.length >= perImplementLimit) {
+        break;
+      }
+    }
     merged.push(...bestFromBucket);
   }
 
@@ -2581,7 +2665,7 @@ function buildWeightCandidatesForDayExercise(exercise, targetKg, pinnedSignature
     if (rankA !== rankB) return rankA - rankB;
     return String(a.signature).localeCompare(String(b.signature));
   });
-  const limit = 16;
+  const limit = allowsIndependentDbSides(exercise) ? 32 : 16;
   let trimmed = sorted.slice(0, limit);
 
   if (pinnedSignature) {
