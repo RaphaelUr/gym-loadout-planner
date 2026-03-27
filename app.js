@@ -2244,6 +2244,7 @@ function solveDayWeightPlan(dayExercises) {
   }
 
   const sharedDbStats = computeSharedDayDbStats(finalChosenWeightCandidates);
+  const hasCompleteWeightPlan = finalChosenWeightCandidates.length === weightExercises.length;
 
   return {
     candidatesByExercise,
@@ -2254,7 +2255,7 @@ function solveDayWeightPlan(dayExercises) {
     sharedDbStats,
     transferPlanByExerciseId,
     reloadPlanByExerciseId,
-    weightPlanFeasible: Boolean(feasibility.feasible),
+    weightPlanFeasible: Boolean(feasibility.feasible) && hasCompleteWeightPlan,
     feasibility,
     timedOut: solved.timedOut,
     strictPinsSatisfied: pinUnavailableByExercise.size === 0
@@ -2623,8 +2624,8 @@ function buildWeightCandidatesForDayExercise(exercise, targetKg, pinnedSignature
   }
 
   const merged = [];
-  const perImplementLimit = allowsIndependentDbSides(exercise) ? 10 : 4;
-  const maxPerDisplayText = allowsIndependentDbSides(exercise) ? 2 : 1;
+  const perImplementLimit = allowsIndependentDbSides(exercise) ? 10 : 6;
+  const maxPerDisplayText = 2;
   for (const bucket of bucketsByImplement.values()) {
     const bestFromBucket = [];
     const displayTextCounts = new Map();
@@ -2665,7 +2666,7 @@ function buildWeightCandidatesForDayExercise(exercise, targetKg, pinnedSignature
     if (rankA !== rankB) return rankA - rankB;
     return String(a.signature).localeCompare(String(b.signature));
   });
-  const limit = allowsIndependentDbSides(exercise) ? 32 : 16;
+  const limit = allowsIndependentDbSides(exercise) ? 32 : 24;
   let trimmed = sorted.slice(0, limit);
 
   if (pinnedSignature) {
